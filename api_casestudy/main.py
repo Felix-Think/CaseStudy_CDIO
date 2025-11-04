@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from fastapi import FastAPI
+<<<<<<< HEAD
 from fastapi.middleware.cors import CORSMiddleware
+=======
+
+>>>>>>> origin/Thang
 from api_casestudy.core.config import get_settings
 from api_casestudy.routers import agent_router, semantic_router
 
@@ -24,6 +28,7 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
+<<<<<<< HEAD
 origins = [
     "http://localhost:8000",      # web chạy port 8000
     "http://127.0.0.1:8000",      # đôi khi trình duyệt dùng 127.0.0.1 thay vì localhost
@@ -36,6 +41,9 @@ app.add_middleware(
     allow_methods=["*"],          # Cho phép GET, POST, OPTIONS,...
     allow_headers=["*"],          # Cho phép Content-Type, Authorization,...
 )
+=======
+
+>>>>>>> origin/Thang
 
 @app.get("/healthz")
 async def healthcheck() -> dict[str, str]:

@@ -1,5 +1,5 @@
 {
-  "case_id": "drowning_pool_001",
+  "case_id": "drowning_pool_002",
   "topic": "Sơ cứu đuối nước tại hồ bơi",
   "initial_context": {
     "scene": {
@@ -14,11 +14,6 @@
       "who_first_on_scene": "Bạn ở gần nhất và là người đầu tiên tiếp cận"
     },
     "available_resources": {
-<<<<<<< HEAD
-      "rescue": ["Phao tròn", "Sào cứu hộ", "Khăn/áo choàng"],
-      "medical": ["Túi sơ cứu cơ bản", "AED ở quầy lễ tân cách ~50m"],
-      "human": ["Bảo vệ cơ sở", "2–3 người bơi gần đó sẵn sàng hỗ trợ"]
-=======
       "rescue": [
         "Phao tròn",
         "Sào cứu hộ",
@@ -32,7 +27,6 @@
         "Bảo vệ cơ sở",
         "2–3 người bơi gần đó sẵn sàng hỗ trợ"
       ]
->>>>>>> origin/Thang
     },
     "constraints": [
       "Sàn ướt và trơn, nguy cơ ngã",
@@ -47,11 +41,6 @@
       "Tôn trọng quyền riêng tư nạn nhân; tránh ghi hình/tiết lộ thông tin không cần thiết"
     ],
     "handover_target": "Bàn giao cho 115/EMS ngay khi họ đến",
-<<<<<<< HEAD
-    "success_end_state": "Nạn nhân được duy trì thông khí/tuần hoàn tốt nhất có thể, ấm và ổn định tới lúc bàn giao; thân nhân được trấn an"
-  }
-}
-=======
     "success_end_state": "Nạn nhân được duy trì thông khí/tuần hoàn tốt nhất có thể, ấm và ổn định tới lúc bàn giao; thân nhân được trấn an",
     "available_resources_meta": {
       "rescue": {
@@ -69,4 +58,3 @@
     }
   }
 }
->>>>>>> origin/Thang
