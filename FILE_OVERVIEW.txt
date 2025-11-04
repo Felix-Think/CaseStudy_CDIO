@@ -1,0 +1,104 @@
+Sơ Đồ Chức Năng CaseStudy
+=========================
+
+Ghi chú này mô tả chi tiết vai trò của từng tệp trong hệ thống CaseStudy dùng LangGraph.
+
+
+Điểm vào chương trình
+---------------------
+- README.md  
+  Hướng dẫn thiết lập môi trường (Conda + Poetry) và lưu ý khi cài đặt.
+
+- casestudy/README.md  
+  Tài liệu kiến trúc: mô hình “3 tầng trí nhớ” và lưu đồ node dự kiến.
+
+- casestudy/__init__.py  
+  Để module `casestudy` có thể import (không chứa logic).
+
+- casestudy/main.py  
+  CLI tương tác. Tải logic memory, dựng graph, chạy lượt đầu để cung cấp ngữ cảnh, sau đó vào vòng lặp `input()` nhận hành động người học và tiếp tục mô phỏng cho đến khi kết thúc.
+
+
+Tầng Agent – Cấu trúc dữ liệu dùng chung
+----------------------------------------
+- casestudy/agent/state.py  
+  Định nghĩa `PersonaState`, `RuntimeState` bằng Pydantic; hỗ trợ (de)serialise, lưu lịch sử hội thoại, cờ policy, phản hồi AI.
+
+- casestudy/agent/const.py  
+  Giá trị mặc định (case ID, model), hàm tiện ích lấy đường dẫn tới logic/semantic/runtime memory.
+
+- casestudy/agent/memory.py  
+  Đọc logic memory từ JSON (canon events, personas, bối cảnh), lưu thứ tự sự kiện và cung cấp hàm tra cứu.
+
+- casestudy/agent/runtime_store.py  
+  Lưu/đọc `RuntimeState` ra file (runtime_state.json) để các node không thao tác I/O trực tiếp.
+
+- casestudy/agent/__init__.py  
+  Xuất các lớp/hàm chính (`CaseStudyGraphBuilder`, `build_case_study_graph`, `LogicMemory`, state…).
+
+
+Tầng Agent – Chuỗi xử lý (casestudy/agent/chains/)
+-------------------------------------------------
+- base.py  
+  Hàm tạo ChatOpenAI dùng chung (model, temperature).
+
+- scene.py  
+  LLM chain tóm tắt bối cảnh hiện tại từ semantic retriever và mô tả logic; prompt tổng quát cho mọi case.
+
+- persona.py  
+  LLM chain nén thông tin nhân vật thành digest ngắn gọn theo persona_id.
+
+- policy.py  
+  Chain truy xuất thuần (Chroma) trả về các đoạn policy phù hợp nhất với hành động học viên.
+
+- action.py  
+  Bộ chấm điểm hành động dựa trên so khớp từ khóa (không dùng LLM); xử lý tiếng Việt bằng cách loại dấu trước khi so sánh.
+
+- responder.py  
+  Chain sinh phản hồi của facilitator dựa trên state hiện tại (scene, persona, history, policy).
+
+- __init__.py  
+  Gom các hàm tạo chain để import thuận tiện.
+
+
+Tầng Agent – Node LangGraph (casestudy/agent/nodes/)
+---------------------------------------------------
+- ingress.py  
+  Tải trạng thái lưu trước đó (nếu có), giữ lại hành động mới từ người dùng rồi tiếp tục mô phỏng.
+
+- semantic.py  
+  Gọi scene/persona chain để cập nhật `scene_summary`, `active_personas`.
+
+- policy.py  
+  Thực thi policy chain, đặt kết quả vào `state.policy_flags`.
+
+- action.py  
+  Đối chiếu hành động với yêu cầu trong canon event hiện tại, ghi trạng thái pass/fail và thông tin chấm điểm.
+
+- transition.py  
+  Dựa vào `event_summary` để quyết định sự kiện kế tiếp (`on_success` / `on_fail`).
+
+- responder.py  
+  Gọi responder chain để sinh phản hồi hướng dẫn cho người học.
+
+- state_update.py  
+  Ghi lịch sử hội thoại, điều chỉnh độ tin tưởng nhân vật theo vi phạm policy, xóa user_action sau mỗi lượt.
+
+- egress.py  
+  Lưu `RuntimeState` xuống đĩa thông qua `RuntimeStateStore`.
+
+- __init__.py  
+  Xuất các node builder cho phần graph.
+
+
+Lắp ráp đồ thị
+--------------
+- casestudy/agent/graph.py  
+  Dựng `CaseStudyGraphBuilder`: nạp semantic indexes, tạo chains, gắn node theo flow tuyến tính, cung cấp hàm `build_case_study_graph`.
+
+
+Tiện ích
+--------
+- casestudy/utils/semantic_extract.py  
+  Xây/lấy Semantic Memory (scene, persona, policy) bằng Chroma + OpenAI embeddings; có demo truy vấn mẫu.
+
