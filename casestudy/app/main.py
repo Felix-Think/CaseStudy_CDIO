@@ -32,7 +32,6 @@ async def serve_nhap_case() -> FileResponse:
     return FileResponse(nhap_case_path)
 
 
-<<<<<<< HEAD
 @app.get("/chatframe", response_class=FileResponse)
 async def serve_chatframe() -> FileResponse:
     chatframe_path = FRONTEND_DIR / "chatframe.html"
@@ -48,14 +47,4 @@ async def serve_case_list() -> FileResponse:
         raise HTTPException(status_code=404, detail="listOfCase.html not found.")
     return FileResponse(case_list_path)
 
-=======
-@app.get("/favicon.ico", include_in_schema=False)
-async def serve_favicon() -> FileResponse:
-    favicon_path = FRONTEND_DIR / "favicon.ico"
-    if not favicon_path.exists():
-        raise HTTPException(status_code=404, detail="favicon.ico not found.")
-    return FileResponse(favicon_path)
-
-
->>>>>>> origin/Thang
 app.include_router(api_router, prefix="/api")
