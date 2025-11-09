@@ -1,68 +1,53 @@
+from __future__ import annotations
+
+import argparse
 import json
-from pathlib import Path
-from typing import Any, Dict, List
+import os
+from typing import Any, Dict, Iterable, List, Tuple
 
 from dotenv import load_dotenv
-from langchain.docstore.document import Document
-from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings
+from pinecone import Pinecone
+from langchain_pinecone import PineconeVectorStore
+
+from casestudy.utils.document_builder import build_documents
+from casestudy.app.core.config import get_settings as get_app_settings
+from casestudy.app.db.database import get_mongo_client as get_app_mongo_client
 
 load_dotenv()
-embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
+embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
 
-BASE_DIR = Path(__file__).resolve().parents[1]
-CASE_ROOT = BASE_DIR / "cases"
-AGENT_CASE_ROOT = BASE_DIR / "agent" / "cases"
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "asia-southeast1-gcp")
+PINECONE_SCENE_INDEX = os.getenv("PINECONE_SCENE_INDEX", "casestudy-scene")
+PINECONE_PERSONA_INDEX = os.getenv("PINECONE_PERSONA_INDEX", "casestudy-persona")
+PINECONE_POLICY_INDEX = os.getenv("PINECONE_POLICY_INDEX", "casestudy-policy")
+PINECONE_TEXT_KEY = os.getenv("PINECONE_TEXT_KEY", "text")
+_pinecone_client: Pinecone | None = None
+
+INDEX_NAME_BY_LABEL = {
+    "scene": PINECONE_SCENE_INDEX,
+    "persona": PINECONE_PERSONA_INDEX,
+    "policy": PINECONE_POLICY_INDEX,
+}
+DEFAULT_NAMESPACE = "default"
+BATCH_SIZE_DEFAULT = 64
 
 CASE_ID: str | None = None
-case_dir: Path | None = None
-logic_dir: Path | None = None
-semantic_dir: Path | None = None
-scene_index_dir: Path | None = None
-persona_index_dir: Path | None = None
-policy_index_dir: Path | None = None
 
 
 def configure_paths(case_id: str) -> None:
     """
-    Cấu hình lại các đường dẫn semantic cho case_id tương ứng.
+    Chỉ cần ghi nhận case_id hiện tại để dùng làm namespace Pinecone.
     """
-    global CASE_ID, case_dir, logic_dir, semantic_dir, scene_index_dir, persona_index_dir, policy_index_dir
-
+    global CASE_ID
     CASE_ID = case_id
-    case_dir = CASE_ROOT / case_id
-    logic_dir = case_dir / "logic_memory"
-    if not logic_dir.exists():
-        logic_dir = case_dir
-
-    AGENT_CASE_ROOT.mkdir(parents=True, exist_ok=True)
-    semantic_dir = AGENT_CASE_ROOT / case_id / "semantic_memory"
-    semantic_dir.mkdir(parents=True, exist_ok=True)
-
-    scene_index_dir = semantic_dir / "scene_index"
-    persona_index_dir = semantic_dir / "persona_index"
-    policy_index_dir = semantic_dir / "policy_index"
 
 
 def _ensure_configured() -> None:
-    if CASE_ID is None or case_dir is None or logic_dir is None or semantic_dir is None:
-        raise RuntimeError("Semantic paths chưa được cấu hình. Hãy gọi configure_paths(case_id) trước.")
-
-
-def load_initial_context() -> Dict:
-    _ensure_configured()
-    context_path = logic_dir / "context.json"
-    with context_path.open("r", encoding="utf-8") as f:
-        data = json.load(f)
-    return data["initial_context"]
-
-
-def load_personas() -> List[Dict]:
-    _ensure_configured()
-    personas_path = logic_dir / "personas.json"
-    with personas_path.open("r", encoding="utf-8") as f:
-        data = json.load(f)
-    return data.get("personas", [])
+    if CASE_ID is None:
+        raise RuntimeError("Semantic namespace chưa được cấu hình. Hãy gọi configure_paths(case_id) trước.")
 
 
 def normalize_metadata(metadata: Dict[str, Any]) -> Dict[str, Any]:
@@ -75,176 +60,185 @@ def normalize_metadata(metadata: Dict[str, Any]) -> Dict[str, Any]:
     return normalized
 
 
-def build_scene_documents(context: Dict) -> List[Document]:
+def sync_case_to_pinecone(
+    case_id: str,
+    *,
+    batch_size: int = BATCH_SIZE_DEFAULT,
+    force_rebuild: bool = False,
+) -> Dict[str, int]:
+    """
+    Đọc dữ liệu case từ MongoDB, embedding bằng OpenAI và đẩy lên Pinecone theo từng index.
+    """
     _ensure_configured()
-    scene = context["scene"]
-    index_event = context["index_event"]
-    resources = context["available_resources"]
-    resource_list = []
-    for idx, resource in enumerate(resources):
-        resource_list.append({resource})
-    resource_text = ", ".join(resource_list)
-    sections = [
-        (
-            "overview",
-            f"Địa điểm: {scene['location']}. Thời tiết: {scene['weather']}. "
-            f"Thời gian: {scene['time']}. Âm thanh: {scene['noise_level']}.",
-        ),
-        (
-            "index_event",
-            f"Sự kiện ban đầu: {index_event['summary']}. "
-            f"Tình trạng hiện tại: {index_event['current_state']}.",
-        ),
-        ("resources", "Nguồn lực: " + resource_text),
-        ("constraints", "Ràng buộc: " + ", ".join(context.get("constraints", []))),
-    ]
+    documents_map = _build_documents_from_mongo(case_id)
+    namespace = case_id
+    stats: Dict[str, int] = {}
+    pinecone_client = _get_pinecone_client()
 
-    return [
-        Document(
-            page_content=text,
-                metadata=normalize_metadata(
-                    {
-                        "type": "scene",
-                        "case_id": CASE_ID,
-                    "section": section,
+    for label, documents in documents_map.items():
+        index_name = INDEX_NAME_BY_LABEL.get(label)
+        if not index_name:
+            continue
+        if not documents:
+            stats[label] = 0
+            continue
+
+        index = pinecone_client.Index(index_name)
+        if force_rebuild:
+            index.delete(namespace=namespace, delete_all=True)
+
+        inserted = _upsert_documents(
+            index=index,
+            namespace=namespace,
+            label=label,
+            documents=documents,
+            batch_size=batch_size,
+        )
+        stats[label] = inserted
+
+    if not stats:
+        raise RuntimeError("Chưa cấu hình Pinecone index cho bất kỳ nhóm tài liệu nào.")
+
+    return stats
+
+
+def _build_documents_from_mongo(case_id: str) -> Dict[str, List[Any]]:
+    context, personas, skeleton = _fetch_case_payload(case_id)
+    documents_map = build_documents(context, personas, skeleton)
+    total_docs = sum(len(items) for items in documents_map.values())
+    if total_docs == 0:
+        raise ValueError(f"Không có tài liệu nào để index cho case_id '{case_id}'.")
+    return documents_map
+
+
+def _fetch_case_payload(case_id: str) -> Tuple[Dict, List[Dict], Dict]:
+    client = get_app_mongo_client()
+    if client is None:
+        raise RuntimeError("Không thể khởi tạo Mongo client để đọc dữ liệu case.")
+
+    settings = get_app_settings()
+    db = client[settings.mongo_db]
+
+    context = db.contexts.find_one({"case_id": case_id}, {"_id": 0})
+    if not context:
+        raise ValueError(f"Không tìm thấy context cho case_id '{case_id}'.")
+
+    personas = list(db.personas.find({"case_id": case_id}, {"_id": 0}))
+    skeleton = db.skeletons.find_one({"case_id": case_id}, {"_id": 0})
+    if not skeleton:
+        raise ValueError(f"Không tìm thấy skeleton cho case_id '{case_id}'.")
+
+    return context, personas, skeleton
+
+
+def _upsert_documents(
+    *,
+    index,
+    namespace: str,
+    label: str,
+    documents: List[Any],
+    batch_size: int,
+) -> int:
+    total = 0
+    for offset, batch in _batched(documents, batch_size):
+        if not batch:
+            continue
+        texts = [doc.page_content for doc in batch]
+        vectors = embeddings.embed_documents(texts)
+        payload = []
+        for idx, (doc, vector) in enumerate(zip(batch, vectors)):
+            metadata = dict(doc.metadata or {})
+            metadata = normalize_metadata(metadata)
+            metadata.setdefault("case_id", namespace)
+            metadata.setdefault("index", label)
+            metadata[PINECONE_TEXT_KEY] = doc.page_content
+            vector_id = _make_vector_id(namespace, label, metadata, offset + idx)
+            payload.append(
+                {
+                    "id": vector_id,
+                    "values": vector,
+                    "metadata": metadata,
                 }
-            ),
-        )
-        for section, text in sections
-    ]
-
-
-def build_persona_documents(personas: List[Dict]) -> List[Document]:
-    _ensure_configured()
-    documents = []
-    for persona in personas:
-        emotions = list(
-            filter(
-                None,
-                [
-                    persona.get("emotion_init"),
-                    *(persona.get("emotion_during", []) or []),
-                    persona.get("emotion_end"),
-                ],
             )
-        )
-        emotion_text = ", ".join(emotions) if emotions else "Chưa cập nhật"
-
-        goal_text = persona.get("goal")
-        if not goal_text:
-            goal_text = ", ".join(persona.get("goals", [])) or "Chưa rõ"
-
-        speech_text = persona.get("speech_pattern")
-        if not speech_text:
-            speech_text = ", ".join(persona.get("likely_lines", [])) or "Không có"
-
-        trait_text = persona.get("personality")
-        if not trait_text:
-            raw_traits = persona.get("traits")
-            trait_text = ", ".join(raw_traits) if isinstance(raw_traits, list) else raw_traits
-        trait_text = trait_text or "Chưa rõ"
-
-        page_content = (
-            f"{persona.get('name', 'Ẩn danh')} ({persona.get('role', 'Chưa rõ')}) – "
-            f"Tuổi: {persona.get('age', 'Chưa rõ')}. "
-            f"Giới tính: {persona.get('gender', 'Chưa rõ')}. "
-            f"Nền tảng: {persona.get('background', 'Chưa rõ')}. "
-            f"Đặc điểm: {trait_text}. "
-            f"Mục tiêu: {goal_text}. "
-            f"Cảm xúc: {emotion_text}. "
-            f"Mẫu lời nói: {speech_text}."
-        )
-
-        documents.append(
-            Document(
-                page_content=page_content,
-                metadata=normalize_metadata(
-                    {
-                        "type": "persona",
-                        "case_id": CASE_ID,
-                        "persona_id": persona.get("id"),
-                        "role": persona.get("role"),
-                        "voice_tags": persona.get("voice_tags", []),
-                        "emotion_tags": emotions,
-                        "raw": persona,
-                    }
-                ),
-            )
-        )
-    return documents
+        if payload:
+            index.upsert(vectors=payload, namespace=namespace)
+            total += len(payload)
+    return total
 
 
-def build_policy_documents(context: Dict) -> List[Document]:
-    _ensure_configured()
-    policies = context.get("policies_safety_legal", [])
-    documents = []
-    for idx, policy in enumerate(policies):
-        documents.append(
-            Document(
-                page_content=policy,
-                metadata=normalize_metadata(
-                    {
-                        "type": "policy",
-                        "case_id": CASE_ID,
-                        "policy_id": f"policy_{idx + 1}",
-                    }
-                ),
-            )
-        )
-    return documents
+def _batched(items: List[Any], size: int) -> Iterable[Tuple[int, List[Any]]]:
+    if size <= 0:
+        size = BATCH_SIZE_DEFAULT
+    for start in range(0, len(items), size):
+        yield start, items[start : start + size]
 
 
-def build_indices() -> None:
-    context = load_initial_context()
-    personas = load_personas()
-
-    scene_docs = build_scene_documents(context)
-    persona_docs = build_persona_documents(personas)
-    policy_docs = build_policy_documents(context)
-
-    scene_index = Chroma.from_documents(
-        scene_docs,
-        embeddings,
-        persist_directory=str(scene_index_dir),
-    )
-    persona_index = Chroma.from_documents(
-        persona_docs,
-        embeddings,
-        persist_directory=str(persona_index_dir),
-    )
-    policy_index = Chroma.from_documents(
-        policy_docs,
-        embeddings,
-        persist_directory=str(policy_index_dir),
-    )
-
-    scene_index.persist()
-    persona_index.persist()
-    policy_index.persist()
+def _make_vector_id(case_id: str, label: str, metadata: Dict[str, Any], ordinal: int) -> str:
+    for key in ("event_id", "persona_id", "policy_id", "doc_id", "id"):
+        value = metadata.get(key)
+        if value:
+            return f"{case_id}-{label}-{str(value).replace(' ', '_')}"
+    return f"{case_id}-{label}-{ordinal}"
 
 
 def load_indices():
     _ensure_configured()
-    return (
-        Chroma(persist_directory=str(scene_index_dir), embedding_function=embeddings),
-        Chroma(persist_directory=str(persona_index_dir), embedding_function=embeddings),
-        Chroma(persist_directory=str(policy_index_dir), embedding_function=embeddings),
+    namespace = CASE_ID or DEFAULT_NAMESPACE
+    scene_store = _load_pinecone_vectorstore(PINECONE_SCENE_INDEX, namespace, "scene")
+    persona_store = _load_pinecone_vectorstore(PINECONE_PERSONA_INDEX, namespace, "persona")
+    policy_store = _load_pinecone_vectorstore(PINECONE_POLICY_INDEX, namespace, "policy")
+    return scene_store, persona_store, policy_store
+
+
+def _load_pinecone_vectorstore(index_name: str, namespace: str, label: str):
+    if not index_name:
+        raise RuntimeError(f"Chưa cấu hình Pinecone index cho '{label}'.")
+    try:
+        client = _get_pinecone_client()
+        index = client.Index(index_name)
+    except Exception as exc:  # pragma: no cover - network errors
+        raise RuntimeError(f"Không thể truy cập Pinecone index '{index_name}'.") from exc
+    return PineconeVectorStore(
+        index=index,
+        embedding=embeddings,
+        text_key=PINECONE_TEXT_KEY,
+        namespace=namespace,
     )
 
 
+def _get_pinecone_client() -> Pinecone:
+    global _pinecone_client
+    if _pinecone_client is not None:
+        return _pinecone_client
+    if not PINECONE_API_KEY:
+        raise RuntimeError("Chưa cấu hình PINECONE_API_KEY.")
+    client_kwargs = {"api_key": PINECONE_API_KEY}
+    if PINECONE_ENVIRONMENT:
+        client_kwargs["environment"] = PINECONE_ENVIRONMENT
+    _pinecone_client = Pinecone(**client_kwargs)
+    return _pinecone_client
+
+
 if __name__ == "__main__":
-    configure_paths(CASE_ID or "drowning_pool_001")
+    parser = argparse.ArgumentParser(description="Đồng bộ dữ liệu case lên Pinecone.")
+    parser.add_argument("case_id", help="Case ID cần sync semantic memory.")
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=BATCH_SIZE_DEFAULT,
+        help=f"Số documents embed mỗi batch (mặc định {BATCH_SIZE_DEFAULT}).",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Xóa namespace cũ trước khi upsert (delete_all).",
+    )
+    args = parser.parse_args()
 
-    scene_index, persona_index, policy_index = load_indices()
-
-    print("\n--- Scene Query ---")
-    for result in scene_index.similarity_search("Có bao nhiêu người tại hiện trường", k=2):
-        print("→", result.page_content, "| metadata:", result.metadata)
-
-    print("\n--- Persona Query ---")
-    for result in persona_index.similarity_search("Ai là người nhà nạn nhân", k=1):
-        print("→", result.page_content, "| metadata:", result.metadata)
-
-    print("\n--- Policy Query ---")
-    for result in policy_index.similarity_search("Tôn trọng quyền", k=4):
-        print("→", result.page_content, "| metadata:", result.metadata)
+    configure_paths(args.case_id)
+    result = sync_case_to_pinecone(
+        args.case_id,
+        batch_size=args.batch_size,
+        force_rebuild=args.force,
+    )
+    print(f"✅ Đồng bộ Pinecone thành công cho case '{args.case_id}': {result}")
