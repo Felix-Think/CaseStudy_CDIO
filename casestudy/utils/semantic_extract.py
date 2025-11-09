@@ -6,9 +6,9 @@ import os
 from typing import Any, Dict, Iterable, List, Tuple
 
 from dotenv import load_dotenv
-from langchain_community.vectorstores import Pinecone as PineconeVectorStore
 from langchain_openai import OpenAIEmbeddings
 from pinecone import Pinecone
+from langchain_pinecone import PineconeVectorStore
 
 from casestudy.utils.document_builder import build_documents
 from casestudy.app.core.config import get_settings as get_app_settings
@@ -200,7 +200,7 @@ def _load_pinecone_vectorstore(index_name: str, namespace: str, label: str):
         raise RuntimeError(f"Không thể truy cập Pinecone index '{index_name}'.") from exc
     return PineconeVectorStore(
         index=index,
-        embedding_function=embeddings,
+        embedding=embeddings,
         text_key=PINECONE_TEXT_KEY,
         namespace=namespace,
     )
