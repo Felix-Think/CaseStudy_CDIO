@@ -13,7 +13,7 @@ _mongo_client: Optional[MongoClient] = None
 
 def get_mongo_client() -> MongoClient:
     """
-    Tạo hoặc trả về MongoDB client dùng chung cho semantic API.
+    Tạo hoặc trả về MongoDB client dùng chung cho Agent API.
     """
     global _mongo_client
     if _mongo_client is not None:

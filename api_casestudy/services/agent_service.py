@@ -14,7 +14,6 @@ from api_casestudy.schemas import (
     AgentTurnRequest,
     AgentTurnResponse,
 )
-from api_casestudy.services.semantic_service import SemanticService
 
 
 def _normalize_runtime_state(result) -> RuntimeState:
@@ -42,7 +41,7 @@ class _InMemoryStateStore:
 
 def _configure_semantic_module(case_id: str) -> None:
     """
-    Cập nhật module semantic_extract để trỏ tới thư mục case tương ứng.
+    Cập nhật module semantic_extract để load đúng namespace Pinecone cho case_id.
     """
     semantic_utils.configure_paths(case_id)
 
@@ -80,7 +79,6 @@ class AgentService:
 
     def __init__(self) -> None:
         self._sessions: Dict[str, AgentSession] = {}
-        self._semantic_service = SemanticService()
 
     def create_session(self, payload: AgentSessionCreateRequest) -> AgentSessionCreateResponse:
         try:
@@ -91,17 +89,6 @@ class AgentService:
         start_event = payload.start_event or logic_memory.first_event or "CE1"
 
         _configure_semantic_module(payload.case_id)
-
-        if payload.ensure_semantic:
-            try:
-                self._semantic_service.ensure_store(
-                    payload.case_id,
-                    force_rebuild=payload.rebuild_semantic,
-                )
-            except ValueError as exc:
-                raise ValueError("Không thể xây dựng semantic store cho case đã chọn.") from exc
-            except RuntimeError as exc:
-                raise RuntimeError("Lỗi khi xây dựng semantic store.") from exc
 
         state_store = _InMemoryStateStore()
         builder = CaseStudyGraphBuilder(

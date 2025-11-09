@@ -23,14 +23,6 @@ class AgentSessionCreateRequest(BaseModel):
         default=True,
         description="Có reset trạng thái runtime trước khi chạy lượt đầu hay không.",
     )
-    ensure_semantic: bool = Field(
-        default=True,
-        description="Tự động đảm bảo semantic index tồn tại trước khi khởi chạy.",
-    )
-    rebuild_semantic: bool = Field(
-        default=False,
-        description="Force rebuild semantic index trước khi chạy.",
-    )
 
 
 class AgentSessionCreateResponse(BaseModel):
