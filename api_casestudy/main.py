@@ -5,6 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from api_casestudy.core.config import get_settings
 from api_casestudy.routers import agent_router, semantic_router
 
+from dotenv import load_dotenv
+load_dotenv()
 
 def create_app() -> FastAPI:
     """
