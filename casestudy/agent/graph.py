@@ -52,7 +52,7 @@ class CaseStudyGraphBuilder:
             scene_index, persona_index, policy_index = load_indices()
         except Exception as exc:
             raise RuntimeError(
-                "Không thể tải Semantic Memory. Hãy chạy build_indices() trước."
+                "Không thể tải Semantic Memory từ Pinecone. Vui lòng kiểm tra cấu hình và namespace."
             ) from exc
 
         self.scene_chain = create_scene_summary_chain(
