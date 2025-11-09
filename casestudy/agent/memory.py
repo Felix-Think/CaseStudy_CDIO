@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import json
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, Dict, List, Optional
 
-from .const import get_case_dir, get_logic_memory_dir
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
+
+from casestudy.app.core.config import get_settings as get_app_settings
+from casestudy.app.db.database import get_mongo_client
 
 
 @dataclass
@@ -18,27 +18,15 @@ class LogicMemory:
 
     @classmethod
     def load(cls, case_id: str) -> "LogicMemory":
-        logic_dir = get_logic_memory_dir(case_id)
-        if not logic_dir.exists():
-            logic_dir = get_case_dir(case_id)
-            if not logic_dir.exists():
-                raise FileNotFoundError(f"Không tìm thấy dữ liệu cho case_id '{case_id}'.")
-
-        skeleton = _read_json(logic_dir / "skeleton.json")
-        personas_payload = _read_json(logic_dir / "personas.json")
-        context_payload = _read_json(logic_dir / "context.json")
-
+        context, personas, skeleton = _load_case_payload(case_id)
         events = skeleton.get("canon_events", [])
 
         return cls(
             case_id=case_id,
-            canon_events={event["id"]: event for event in events},
-            event_sequence=[event["id"] for event in events if "id" in event],
-            personas={
-                persona["id"]: persona
-                for persona in personas_payload.get("personas", [])
-            },
-            context=context_payload.get("initial_context", {}),
+            canon_events={event["id"]: event for event in events if event.get("id")},
+            event_sequence=[event["id"] for event in events if event.get("id")],
+            personas={persona["id"]: persona for persona in personas if persona.get("id")},
+            context=context.get("initial_context") or context,
         )
 
     def get_event(self, event_id: str) -> Optional[Dict[str, Any]]:
@@ -52,6 +40,32 @@ class LogicMemory:
         return self.event_sequence[0] if self.event_sequence else None
 
 
-def _read_json(path: Path) -> Dict[str, Any]:
-    with path.open("r", encoding="utf-8") as handle:
-        return json.load(handle)
+def _load_case_payload(case_id: str) -> Tuple[Dict[str, Any], List[Dict[str, Any]], Dict[str, Any]]:
+    """
+    Thử ưu tiên đọc dữ liệu từ MongoDB; fallback sang local JSON khi không có.
+    """
+    context, personas, skeleton = _load_from_mongo(case_id)
+    if not context and not personas and not skeleton:
+        raise ValueError(f"Không tìm thấy dữ liệu case_id '{case_id}' trong MongoDB, thử đọc từ local.")
+    if context and skeleton:
+        return context, personas or [], skeleton
+
+    return (
+        context,
+        personas or [],
+        skeleton,
+    )
+
+
+def _load_from_mongo(case_id: str) -> Tuple[Dict[str, Any], List[Dict[str, Any]], Dict[str, Any]]:
+    client = get_mongo_client()
+    if client is None:
+        return {}, [], {}
+
+    settings = get_app_settings()
+    db = client[settings.mongo_db]
+
+    context = db.contexts.find_one({"case_id": case_id}, {"_id": 0}) or {}
+    personas = list(db.personas.find({"case_id": case_id}, {"_id": 0}) or [])
+    skeleton = db.skeletons.find_one({"case_id": case_id}, {"_id": 0}) or {}
+    return context, personas, skeleton
