@@ -1,0 +1,40 @@
+{
+  "case_id": "1",
+  "title": "1",
+  "canon_events": [
+    {
+      "id": "1",
+      "title": "1",
+      "description": "1",
+      "success_criteria": [
+        "1"
+      ],
+      "npc_appearance": [
+        {
+          "persona_id": "1"
+        }
+      ],
+      "timeout_turn": 1,
+      "preconditions": [],
+      "on_success": "1",
+      "on_fail": "1"
+    },
+    {
+      "id": "1",
+      "title": "1",
+      "description": "1",
+      "success_criteria": [
+        "1"
+      ],
+      "npc_appearance": [
+        {
+          "persona_id": "1"
+        }
+      ],
+      "timeout_turn": 1,
+      "preconditions": [],
+      "on_success": "1",
+      "on_fail": "1"
+    }
+  ]
+}

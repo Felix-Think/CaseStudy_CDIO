@@ -31,6 +31,9 @@ Service FastAPI độc lập chuyên xử lý semantic store **và** điều ph�
 | DELETE | `/api/agent/sessions/{id}`       | Kết thúc session, giải phóng cache in-memory.                    |
 
 ### Ví dụ payload
+1.Vào http://127.0.0.1:9000/docs
+2.Tìm mục POST /api/semantic/build
+3.Bấm “Try it out”, dán payload JSON đúng như ví dụ rồi “Execute”.
 
 ```json
 POST /api/semantic/build
@@ -49,6 +52,9 @@ POST /api/semantic/query
 }
 ```
 
+Bắt đầu quá trình giao tiếp agent bằng session
+
+user_action → chỉ dùng một lần lúc tạo session, có vai trò “trigger” lượt đầu.
 ```json
 POST /api/agent/sessions
 {
@@ -57,11 +63,17 @@ POST /api/agent/sessions
   "start_event": "CE1"
 }
 ```
+  "user_action": "Bắt đầu nhiệm vụ.",
+  "start_event": "CE1"
+}
 
+```
+user_input → dùng cho các lượt tiếp theo trong cùng session_id.
 ```json
 POST /api/agent/sessions/{session_id}/turn
 {
   "session_id": "{session_id}",
+<<<<<<< HEAD
   "user_input": "Tôi yêu cầu đồng đội gọi cấp cứu và lấy AED."
 }
 ```
@@ -70,6 +82,15 @@ POST /api/agent/sessions/{session_id}/turn
 
 ```bash
 poetry run uvicorn api_casestudy.main:app --reload --port 9000
+  "user_input": ""
+}
+```
+Nếu muốn kết thúc phiên nhưng không muốn kết thúc api thì ta dùng lệnh xóa
+DELETE /api/agent/sessions/{session_id}
+## Chạy thử
+
+```bash
+uvicorn api_casestudy.main:app --reload --port 9000
 ```
 
 > Lưu ý: service sử dụng OpenAI embeddings (`text-embedding-3-small`) giống pipeline hiện có. Thiết lập biến môi trường `OPENAI_API_KEY` trước khi build/query hoặc gọi agent.

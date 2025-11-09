@@ -1,0 +1,23 @@
+{
+  "case_id": "2",
+  "title": "2",
+  "canon_events": [
+    {
+      "id": "2",
+      "title": "2",
+      "description": "2",
+      "success_criteria": [
+        "2"
+      ],
+      "npc_appearance": [
+        {
+          "persona_id": "2"
+        }
+      ],
+      "timeout_turn": 2,
+      "preconditions": [],
+      "on_success": "2",
+      "on_fail": "2"
+    }
+  ]
+}

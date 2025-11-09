@@ -1,27 +1,16 @@
 {
-  "case_id": "drowning_pool_001",
-<<<<<<< HEAD
-=======
+  "case_id": "drowning_pool_002",
   "title": "11",
->>>>>>> origin/Thang
   "canon_events": [
     {
       "id": "CE1",
       "title": "Đánh giá ban đầu & an toàn hiện trường",
       "description": "Thực hiện kiểm tra an toàn bản thân/hiện trường, tiếp cận nạn nhân đúng quy trình và đánh giá nhanh mức đáp ứng, hô hấp, tuần hoàn.",
-<<<<<<< HEAD
-      "preconditions": [],
-=======
->>>>>>> origin/Thang
       "success_criteria": [
         "Xác định rủi ro khu vực nước/trơn trượt và kiểm soát đám đông",
         "Tiếp cận đúng kỹ thuật, giới thiệu vai trò và xin hỗ trợ",
         "Nêu rõ tình trạng ban đầu (đáp ứng, thở, mạch) bằng thuật ngữ đơn giản"
       ],
-<<<<<<< HEAD
-      "timeout_turn": 3,
-=======
->>>>>>> origin/Thang
       "npc_appearance": [
         {
           "persona_id": "P1",
@@ -36,11 +25,8 @@
           "role": "Người bơi gần đó"
         }
       ],
-<<<<<<< HEAD
-=======
       "timeout_turn": 3,
       "preconditions": [],
->>>>>>> origin/Thang
       "on_success": "CE2",
       "on_fail": "CE1_RETRY"
     },
@@ -48,21 +34,11 @@
       "id": "CE2",
       "title": "Kích hoạt cấp cứu & phân công",
       "description": "Kích hoạt 115/EMS đúng lúc, phân công nhân chứng hỗ trợ (gọi cấp cứu, mang AED/túi sơ cứu, điều phối đám đông).",
-<<<<<<< HEAD
-      "preconditions": [
-        "CE1"
-      ],
-=======
->>>>>>> origin/Thang
       "success_criteria": [
         "Chỉ định đích danh người gọi 115 và nhắc lặp lại",
         "Yêu cầu mang AED/túi sơ cứu đến vị trí",
         "Báo tọa độ/địa chỉ và mô tả nạn nhân ngắn gọn"
       ],
-<<<<<<< HEAD
-      "timeout_turn": 3,
-=======
->>>>>>> origin/Thang
       "npc_appearance": [
         {
           "persona_id": "P2",
@@ -73,11 +49,8 @@
           "role": "Nhân viên cơ sở"
         }
       ],
-<<<<<<< HEAD
-=======
       "timeout_turn": 3,
       "preconditions": [],
->>>>>>> origin/Thang
       "on_success": "CE3",
       "on_fail": "CE2_RETRY"
     },
@@ -85,21 +58,11 @@
       "id": "CE3",
       "title": "Sơ cứu theo phác đồ tại chỗ",
       "description": "Thực hiện các can thiệp sơ cứu phù hợp với phác đồ địa phương dành cho nạn nhân đuối nước (ưu tiên đường thở–thở–tuần hoàn, hâm ấm thụ động, theo dõi liên tục cho tới khi bàn giao).",
-<<<<<<< HEAD
-      "preconditions": [
-        "CE2"
-      ],
-=======
->>>>>>> origin/Thang
       "success_criteria": [
         "Quyết định can thiệp dựa trên tình trạng thở/tuần hoàn quan sát được",
         "Hướng dẫn người hỗ trợ đúng và an toàn",
         "Theo dõi, đánh giá lại và chuẩn bị bàn giao cho EMS"
       ],
-<<<<<<< HEAD
-      "timeout_turn": 4,
-=======
->>>>>>> origin/Thang
       "npc_appearance": [
         {
           "persona_id": "P1",
@@ -110,11 +73,8 @@
           "role": "Nhân viên cơ sở"
         }
       ],
-<<<<<<< HEAD
-=======
       "timeout_turn": 4,
       "preconditions": [],
->>>>>>> origin/Thang
       "on_success": "CE4",
       "on_fail": "CE3_RETRY"
     },
@@ -122,21 +82,11 @@
       "id": "CE4",
       "title": "Giao tiếp & trấn an thân nhân",
       "description": "Truyền đạt rõ ràng, trấn an người nhà trong khi vẫn duy trì ưu tiên an toàn và can thiệp cho nạn nhân.",
-<<<<<<< HEAD
-      "preconditions": [
-        "CE3"
-      ],
-=======
->>>>>>> origin/Thang
       "success_criteria": [
         "Giải thích ngắn gọn, dễ hiểu cho thân nhân",
         "Hướng dẫn đứng vị trí an toàn, tránh cản trở",
         "Xử lý câu hỏi/căng thẳng mà không gián đoạn chăm sóc"
       ],
-<<<<<<< HEAD
-      "timeout_turn": 3,
-=======
->>>>>>> origin/Thang
       "npc_appearance": [
         {
           "persona_id": "P2",
@@ -147,11 +97,8 @@
           "role": "Nhân viên cơ sở"
         }
       ],
-<<<<<<< HEAD
-=======
       "timeout_turn": 3,
       "preconditions": [],
->>>>>>> origin/Thang
       "on_success": null,
       "on_fail": "CE4_RETRY"
     }

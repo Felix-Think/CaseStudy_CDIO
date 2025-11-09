@@ -4,6 +4,7 @@ import json
 import shutil
 import tempfile
 from copy import deepcopy
+import logging
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -18,6 +19,9 @@ from casestudy.app.schemas.case import (
 )
 from casestudy.utils.load import load_case_from_local
 from casestudy.utils.save import save_case
+
+
+logger = logging.getLogger(__name__)
 
 
 class CaseService:
@@ -103,28 +107,43 @@ class CaseService:
             )
             cleanup_dir = working_dir
 
+        saved_context = saved_personas = saved_skeleton = None
+        mongo_error: Exception | None = None
         try:
             saved_context, saved_personas, saved_skeleton = save_case(str(working_dir))
-        except Exception as exc:
-            if cleanup_dir:
-                shutil.rmtree(cleanup_dir, ignore_errors=True)
-            raise RuntimeError("Không thể lưu case vào MongoDB.") from exc
+        except Exception as exc:  # pragma: no cover - phụ thuộc MongoDB ngoài hệ thống
+            mongo_error = exc
+            logger.warning("Không thể lưu case '%s' lên MongoDB: %s", case_id, exc, exc_info=True)
 
-        if saved_context is None or saved_personas is None or saved_skeleton is None:
-            if cleanup_dir:
-                shutil.rmtree(cleanup_dir, ignore_errors=True)
-            raise RuntimeError("Không thể lưu case vào MongoDB.")
+        mongo_succeeded = (
+            saved_context is not None and saved_personas is not None and saved_skeleton is not None
+        )
 
-        if cleanup_dir:
+        if cleanup_dir and mongo_succeeded:
             shutil.rmtree(cleanup_dir, ignore_errors=True)
 
-        personas_count = len(saved_personas)
+        if mongo_succeeded:
+            personas_count = len(saved_personas)
+            return CaseCreateResponse(
+                case_id=case_id,
+                personas_count=personas_count,
+                message=f"Đã lưu case '{case_id}' lên MongoDB.",
+                local_path=str(local_path) if local_path else None,
+            )
 
+        # Fallback: giữ dữ liệu local khi MongoDB không khả dụng
+        if cleanup_dir and not persist_local:
+            local_path = cleanup_dir
+        personas_count = len(personas)
+        fallback_message = (
+            f"Đã lưu case '{case_id}' tại thư mục local."
+            + (" Không thể kết nối MongoDB." if mongo_error else "")
+        )
         return CaseCreateResponse(
             case_id=case_id,
             personas_count=personas_count,
-            message=f"Đã lưu case '{case_id}' lên MongoDB.",
-            local_path=str(local_path) if local_path else None,
+            message=fallback_message,
+            local_path=str(local_path) if local_path else str(working_dir),
         )
 
     @staticmethod

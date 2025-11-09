@@ -1,5 +1,5 @@
 {
-  "case_id": "drowning_pool_001",
+  "case_id": "drowning_pool_002",
   "personas": [
     {
       "id": "P1",
@@ -12,11 +12,6 @@
       "goal": "Được cứu sống, ổn định hô hấp và tuần hoàn.",
       "speech_pattern": "Thở gấp, nói ngắt quãng hoặc im lặng.",
       "emotion_init": "hoảng loạn",
-<<<<<<< HEAD
-      "emotion_during": ["hoảng loạn", "mệt mỏi", "hôn mê"],
-      "emotion_end": "ổn định",
-      "voice_tags": ["victim", "panic"]
-=======
       "emotion_during": [
         "hoảng loạn",
         "mệt mỏi",
@@ -27,8 +22,7 @@
         "victim",
         "panic"
       ],
-      "case_id": "drowning_pool_001"
->>>>>>> origin/Thang
+      "case_id": "drowning_pool_002"
     },
     {
       "id": "P2",
@@ -41,11 +35,6 @@
       "goal": "Tìm hiểu tình trạng con, muốn giúp nhưng không biết làm gì.",
       "speech_pattern": "Giọng run, lặp lại câu hỏi.",
       "emotion_init": "hoảng sợ",
-<<<<<<< HEAD
-      "emotion_during": ["lo lắng", "hoang mang", "hy vọng"],
-      "emotion_end": "bình tĩnh hơn",
-      "voice_tags": ["relative", "worried"]
-=======
       "emotion_during": [
         "lo lắng",
         "hoang mang",
@@ -56,8 +45,7 @@
         "relative",
         "worried"
       ],
-      "case_id": "drowning_pool_001"
->>>>>>> origin/Thang
+      "case_id": "drowning_pool_002"
     },
     {
       "id": "P3",
@@ -70,11 +58,6 @@
       "goal": "Hỗ trợ cứu hộ và điều phối hiện trường.",
       "speech_pattern": "Ngắn gọn, rõ ràng, mang tính hướng dẫn.",
       "emotion_init": "bình tĩnh",
-<<<<<<< HEAD
-      "emotion_during": ["tập trung", "lo lắng nhẹ"],
-      "emotion_end": "hài lòng",
-      "voice_tags": ["staff", "calm"]
-=======
       "emotion_during": [
         "tập trung",
         "lo lắng nhẹ"
@@ -84,8 +67,7 @@
         "staff",
         "calm"
       ],
-      "case_id": "drowning_pool_001"
->>>>>>> origin/Thang
+      "case_id": "drowning_pool_002"
     },
     {
       "id": "P4",
@@ -98,14 +80,6 @@
       "goal": "Hỗ trợ cứu hộ khi được hướng dẫn.",
       "speech_pattern": "Hơi vội, dùng từ đơn giản.",
       "emotion_init": "bất ngờ",
-<<<<<<< HEAD
-      "emotion_during": ["lo lắng", "hợp tác"],
-      "emotion_end": "nhẹ nhõm",
-      "voice_tags": ["bystander", "helpful"]
-    }
-  ]
-}
-=======
       "emotion_during": [
         "lo lắng",
         "hợp tác"
@@ -115,8 +89,7 @@
         "bystander",
         "helpful"
       ],
-      "case_id": "drowning_pool_001"
+      "case_id": "drowning_pool_002"
     }
   ]
 }
->>>>>>> origin/Thang

@@ -1,0 +1,37 @@
+{
+  "case_id": "3",
+  "topic": "3",
+  "initial_context": {
+    "scene": {
+      "time": "3",
+      "weather": "3",
+      "location": "3",
+      "noise_level": "3"
+    },
+    "index_event": {
+      "summary": "3",
+      "current_state": "3",
+      "who_first_on_scene": "3"
+    },
+    "available_resources": {
+      "3": [
+        "3",
+        "NOTE: 3"
+      ]
+    },
+    "constraints": [
+      "3"
+    ],
+    "policies_safety_legal": [
+      "3"
+    ],
+    "handover_target": "3",
+    "success_end_state": "3",
+    "available_resources_meta": {
+      "3": {
+        "label": "3",
+        "note": "3"
+      }
+    }
+  }
+}
