@@ -1,0 +1,67 @@
+{
+  "case_id": "hien_trang_kho_khan_001",
+  "title": "Khung cảnh hỗn loạn và nỗ lực cứu người",
+  "canon_events": [
+    {
+      "id": "CE1",
+      "title": "Khám phá hiện trường",
+      "description": "Người cứu hộ đứng giữa khung cảnh hỗn loạn, nhận thấy một người đàn ông bị thương nặng.",
+      "success_criteria": [
+        "Người cứu hộ xác định được tình trạng của Minh",
+        "Có người hỗ trợ tìm băng gạc"
+      ],
+      "npc_appearance": [
+        {
+          "persona_id": "minh",
+          "role": "nạn nhân"
+        }
+      ],
+      "timeout_turn": 9,
+      "preconditions": [],
+      "on_success": "Người cứu hộ có thể bắt đầu sơ cứu cho Minh.",
+      "on_fail": "Thời gian trôi qua, tình trạng của Minh có thể xấu đi."
+    },
+    {
+      "id": "CE2",
+      "title": "Thực hiện sơ cứu",
+      "description": "Người cứu hộ tiến hành băng bó vết thương cho Minh và giữ bình tĩnh cho anh.",
+      "success_criteria": [
+        "Vết thương được băng bó đúng cách",
+        "Minh giữ được sự tỉnh táo"
+      ],
+      "npc_appearance": [
+        {
+          "persona_id": "minh",
+          "role": "nạn nhân"
+        },
+        {
+          "persona_id": "dan_dan",
+          "role": "người dân hỗ trợ"
+        }
+      ],
+      "timeout_turn": 8,
+      "preconditions": [],
+      "on_success": "Minh ổn định hơn và chờ xe cứu thương đến.",
+      "on_fail": "Cần phải lặp lại quy trình sơ cứu hoặc Minh có thể mất ý thức."
+    },
+    {
+      "id": "CE3",
+      "title": "Bàn giao cho nhân viên cứu hộ",
+      "description": "Xe cứu thương đến và nhân viên cứu hộ tiếp nhận Minh để đưa đi bệnh viện.",
+      "success_criteria": [
+        "Minh được chuyển giao an toàn cho nhân viên cứu hộ",
+        "Người cứu hộ cung cấp thông tin cần thiết"
+      ],
+      "npc_appearance": [
+        {
+          "persona_id": "nhan_vien_cuu_ho",
+          "role": "nhân viên cứu hộ"
+        }
+      ],
+      "timeout_turn": 7,
+      "preconditions": [],
+      "on_success": "Minh được đưa đi bệnh viện kịp thời.",
+      "on_fail": "Cần thêm bước hỗ trợ cuối để đảm bảo Minh được chăm sóc tốt."
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "case_id": "cuu_nguoi_trong_rung_001",
+  "topic": "Cứu người trong rừng",
+  "initial_context": {
+    "scene": {
+      "time": "Đêm tối",
+      "weather": "Mát mẻ, ẩm ướt",
+      "location": "Trong rừng",
+      "noise_level": "Tiếng gió và tiếng kêu cứu"
+    },
+    "index_event": {
+      "summary": "Nghe thấy tiếng kêu cứu và quyết định hành động.",
+      "current_state": "Cảm giác lo lắng và hồi hộp.",
+      "who_first_on_scene": "Tôi và Lê Văn Nam"
+    },
+    "available_resources": {
+      "ien-thoai": [
+        "Điện thoại di động",
+        "NOTE: Có tín hiệu yếu."
+      ]
+    },
+    "constraints": [
+      "Thời gian chờ đội cứu hộ có thể ảnh hưởng đến sự an toàn của người kêu cứu."
+    ],
+    "policies_safety_legal": [
+      "Tuân thủ quy trình cứu hộ đã học."
+    ],
+    "handover_target": "Bàn giao thông tin cho đội cứu hộ.",
+    "success_end_state": "",
+    "available_resources_meta": {
+      "ien-thoai": {
+        "label": "Điện thoại",
+        "note": "Có tín hiệu yếu."
+      }
+    }
+  }
+}

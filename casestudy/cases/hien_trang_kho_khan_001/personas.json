@@ -1,0 +1,71 @@
+{
+  "case_id": "hien_trang_kho_khan_001",
+  "personas": [
+    {
+      "id": "minh",
+      "name": "Minh",
+      "role": "nạn nhân",
+      "age": 30,
+      "gender": "Nam",
+      "background": "Một người đàn ông đang lái xe thì gặp tai nạn.",
+      "personality": "Hoảng loạn, cần sự giúp đỡ.",
+      "goal": "Sống sót và được cứu chữa.",
+      "speech_pattern": "Nói yếu ớt, cầu cứu.",
+      "emotion_init": "Hoảng sợ",
+      "emotion_during": [
+        "Cảm thấy đau đớn",
+        "Cố gắng giữ bình tĩnh"
+      ],
+      "emotion_end": "Hy vọng khi thấy xe cứu thương đến",
+      "voice_tags": [
+        "yếu ớt",
+        "cầu cứu"
+      ],
+      "case_id": "hien_trang_kho_khan_001"
+    },
+    {
+      "id": "dan_dan",
+      "name": "Người dân",
+      "role": "người dân hỗ trợ",
+      "age": 40,
+      "gender": "Nam",
+      "background": "Một người dân chứng kiến vụ tai nạn và muốn giúp đỡ.",
+      "personality": "Nhiệt tình, lo lắng.",
+      "goal": "Giúp đỡ nạn nhân.",
+      "speech_pattern": "Nói nhanh, kêu gọi sự giúp đỡ.",
+      "emotion_init": "Lo lắng",
+      "emotion_during": [
+        "Cảm thấy bất lực",
+        "Cố gắng hỗ trợ"
+      ],
+      "emotion_end": "Hy vọng khi thấy người cứu hộ đến",
+      "voice_tags": [
+        "nhiệt tình",
+        "kêu gọi"
+      ],
+      "case_id": "hien_trang_kho_khan_001"
+    },
+    {
+      "id": "nhan_vien_cuu_ho",
+      "name": "Nhân viên cứu hộ",
+      "role": "nhân viên cứu hộ",
+      "age": 35,
+      "gender": "Nam",
+      "background": "Một nhân viên cứu hộ có kinh nghiệm.",
+      "personality": "Bình tĩnh, chuyên nghiệp.",
+      "goal": "Cứu nạn nhân và đưa đi bệnh viện.",
+      "speech_pattern": "Nói rõ ràng, tự tin.",
+      "emotion_init": "Tập trung",
+      "emotion_during": [
+        "Cảm thấy áp lực",
+        "Cố gắng xử lý tình huống"
+      ],
+      "emotion_end": "Thỏa mãn khi cứu được nạn nhân",
+      "voice_tags": [
+        "chuyên nghiệp",
+        "tự tin"
+      ],
+      "case_id": "hien_trang_kho_khan_001"
+    }
+  ]
+}

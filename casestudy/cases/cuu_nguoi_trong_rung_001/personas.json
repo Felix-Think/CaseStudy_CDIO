@@ -1,0 +1,47 @@
+{
+  "case_id": "cuu_nguoi_trong_rung_001",
+  "personas": [
+    {
+      "id": "nam_le_van",
+      "name": "Lê Văn Nam",
+      "role": "Bạn đồng hành",
+      "age": 28,
+      "gender": "Nam",
+      "background": "Một người bạn thân, luôn sẵn sàng giúp đỡ.",
+      "personality": "Nóng tính, nhưng cũng rất quan tâm đến người khác.",
+      "goal": "Cứu người kêu cứu và đảm bảo an toàn cho cả nhóm.",
+      "speech_pattern": "Nói nhanh, thường thể hiện sự lo lắng.",
+      "emotion_init": "Lo lắng và hồi hộp.",
+      "emotion_during": [
+        "Cảm thấy căng thẳng khi chờ đợi đội cứu hộ."
+      ],
+      "emotion_end": "Hy vọng khi thấy đội cứu hộ đến.",
+      "voice_tags": [
+        "hối hả",
+        "khẩn trương"
+      ],
+      "case_id": "cuu_nguoi_trong_rung_001"
+    },
+    {
+      "id": "to_i",
+      "name": "Tôi",
+      "role": "Người dẫn dắt",
+      "age": 30,
+      "gender": "Nam",
+      "background": "Người có kinh nghiệm trong các tình huống khẩn cấp.",
+      "personality": "Bình tĩnh, quyết đoán.",
+      "goal": "Đảm bảo an toàn cho Nam và tìm kiếm người kêu cứu.",
+      "speech_pattern": "Nói chậm rãi, cố gắng trấn an người khác.",
+      "emotion_init": "Lo lắng nhưng cố gắng giữ bình tĩnh.",
+      "emotion_during": [
+        "Cảm thấy hồi hộp khi chờ đợi tín hiệu."
+      ],
+      "emotion_end": "Cảm thấy nhẹ nhõm khi đội cứu hộ đến.",
+      "voice_tags": [
+        "trấn an",
+        "kiên định"
+      ],
+      "case_id": "cuu_nguoi_trong_rung_001"
+    }
+  ]
+}

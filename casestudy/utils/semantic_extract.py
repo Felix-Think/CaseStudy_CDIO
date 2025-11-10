@@ -2,19 +2,30 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
+import time
 from typing import Any, Dict, Iterable, List, Tuple
 
 from dotenv import load_dotenv
+from langchain.docstore.document import Document
 from langchain_openai import OpenAIEmbeddings
-from pinecone import Pinecone
 from langchain_pinecone import PineconeVectorStore
+from pinecone import Pinecone
+from pinecone.exceptions import ServiceException
 
 from casestudy.utils.document_builder import build_documents
 from casestudy.app.core.config import get_settings as get_app_settings
 from casestudy.app.db.database import get_mongo_client as get_app_mongo_client
 
+# ---------------------------------------------------------------------------- #
+#                               ENV CONFIGURATION                              #
+# ---------------------------------------------------------------------------- #
+
 load_dotenv()
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
+
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
 embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
 
@@ -24,6 +35,7 @@ PINECONE_SCENE_INDEX = os.getenv("PINECONE_SCENE_INDEX", "casestudy-scene")
 PINECONE_PERSONA_INDEX = os.getenv("PINECONE_PERSONA_INDEX", "casestudy-persona")
 PINECONE_POLICY_INDEX = os.getenv("PINECONE_POLICY_INDEX", "casestudy-policy")
 PINECONE_TEXT_KEY = os.getenv("PINECONE_TEXT_KEY", "text")
+
 _pinecone_client: Pinecone | None = None
 
 INDEX_NAME_BY_LABEL = {
@@ -31,18 +43,21 @@ INDEX_NAME_BY_LABEL = {
     "persona": PINECONE_PERSONA_INDEX,
     "policy": PINECONE_POLICY_INDEX,
 }
+
 DEFAULT_NAMESPACE = "default"
 BATCH_SIZE_DEFAULT = 64
 
 CASE_ID: str | None = None
 
+# ---------------------------------------------------------------------------- #
+#                              CORE CONFIGURATION                              #
+# ---------------------------------------------------------------------------- #
 
 def configure_paths(case_id: str) -> None:
-    """
-    Chỉ cần ghi nhận case_id hiện tại để dùng làm namespace Pinecone.
-    """
+    """Chỉ cần ghi nhận case_id hiện tại để dùng làm namespace Pinecone."""
     global CASE_ID
     CASE_ID = case_id
+    logger.info(f"Đã cấu hình namespace: {case_id}")
 
 
 def _ensure_configured() -> None:
@@ -51,6 +66,7 @@ def _ensure_configured() -> None:
 
 
 def normalize_metadata(metadata: Dict[str, Any]) -> Dict[str, Any]:
+    """Chuyển mọi giá trị phức tạp sang chuỗi JSON để đảm bảo tương thích Pinecone."""
     normalized: Dict[str, Any] = {}
     for key, value in metadata.items():
         if isinstance(value, (str, int, float, bool)) or value is None:
@@ -59,6 +75,10 @@ def normalize_metadata(metadata: Dict[str, Any]) -> Dict[str, Any]:
             normalized[key] = json.dumps(value, ensure_ascii=False)
     return normalized
 
+
+# ---------------------------------------------------------------------------- #
+#                              MAIN SYNC FUNCTION                              #
+# ---------------------------------------------------------------------------- #
 
 def sync_case_to_pinecone(
     case_id: str,
@@ -78,13 +98,16 @@ def sync_case_to_pinecone(
     for label, documents in documents_map.items():
         index_name = INDEX_NAME_BY_LABEL.get(label)
         if not index_name:
+            logger.warning(f"Bỏ qua label '{label}' (chưa cấu hình index).")
             continue
         if not documents:
+            logger.info(f"Không có tài liệu nào cho nhóm '{label}'.")
             stats[label] = 0
             continue
 
         index = pinecone_client.Index(index_name)
         if force_rebuild:
+            logger.info(f"🧹 Xóa namespace '{namespace}' trong index '{index_name}'...")
             index.delete(namespace=namespace, delete_all=True)
 
         inserted = _upsert_documents(
@@ -98,16 +121,20 @@ def sync_case_to_pinecone(
 
     if not stats:
         raise RuntimeError("Chưa cấu hình Pinecone index cho bất kỳ nhóm tài liệu nào.")
-
     return stats
 
 
-def _build_documents_from_mongo(case_id: str) -> Dict[str, List[Any]]:
+# ---------------------------------------------------------------------------- #
+#                           BUILD DOCUMENTS FROM MONGO                         #
+# ---------------------------------------------------------------------------- #
+
+def _build_documents_from_mongo(case_id: str) -> Dict[str, List[Document]]:
     context, personas, skeleton = _fetch_case_payload(case_id)
     documents_map = build_documents(context, personas, skeleton)
     total_docs = sum(len(items) for items in documents_map.values())
     if total_docs == 0:
         raise ValueError(f"Không có tài liệu nào để index cho case_id '{case_id}'.")
+    logger.info(f"Đã tạo {total_docs} documents từ MongoDB cho case '{case_id}'.")
     return documents_map
 
 
@@ -131,39 +158,59 @@ def _fetch_case_payload(case_id: str) -> Tuple[Dict, List[Dict], Dict]:
     return context, personas, skeleton
 
 
+# ---------------------------------------------------------------------------- #
+#                         UPSERT DOCUMENTS TO PINECONE                         #
+# ---------------------------------------------------------------------------- #
+
 def _upsert_documents(
     *,
     index,
     namespace: str,
     label: str,
-    documents: List[Any],
+    documents: List[Document],
     batch_size: int,
+    max_retries: int = 3,
+    retry_delay: float = 2.5,
 ) -> int:
-    total = 0
+    """
+    Upsert các Document lên Pinecone một cách an toàn, có retry và logging.
+    Dùng PineconeVectorStore.add_documents() để đảm bảo đồng bộ embedding và metadata.
+    """
+    total_inserted = 0
+    if not documents:
+        return 0
+
+    vector_store = PineconeVectorStore(
+        index=index,
+        embedding=embeddings,
+        namespace=namespace,
+        text_key=PINECONE_TEXT_KEY,
+    )
+
     for offset, batch in _batched(documents, batch_size):
-        if not batch:
-            continue
-        texts = [doc.page_content for doc in batch]
-        vectors = embeddings.embed_documents(texts)
-        payload = []
-        for idx, (doc, vector) in enumerate(zip(batch, vectors)):
-            metadata = dict(doc.metadata or {})
-            metadata = normalize_metadata(metadata)
-            metadata.setdefault("case_id", namespace)
-            metadata.setdefault("index", label)
-            metadata[PINECONE_TEXT_KEY] = doc.page_content
-            vector_id = _make_vector_id(namespace, label, metadata, offset + idx)
-            payload.append(
-                {
-                    "id": vector_id,
-                    "values": vector,
-                    "metadata": metadata,
-                }
-            )
-        if payload:
-            index.upsert(vectors=payload, namespace=namespace)
-            total += len(payload)
-    return total
+        for attempt in range(1, max_retries + 1):
+            try:
+                logger.info(
+                    f"[{label}] Upserting batch {offset // batch_size + 1} "
+                    f"({len(batch)} docs) vào namespace '{namespace}'..."
+                )
+                vector_store.add_documents(batch)
+                total_inserted += len(batch)
+                break
+            except ServiceException as e:
+                logger.warning(
+                    f"Lỗi mạng khi upsert batch {offset // batch_size + 1}: {e}. "
+                    f"Thử lại ({attempt}/{max_retries})..."
+                )
+                time.sleep(retry_delay)
+            except Exception as e:
+                logger.error(
+                    f"Lỗi nghiêm trọng khi upsert batch {offset // batch_size + 1}: {e}",
+                    exc_info=True,
+                )
+                raise
+    logger.info(f"✅ Đã upsert {total_inserted} vectors cho '{label}' (namespace={namespace})")
+    return total_inserted
 
 
 def _batched(items: List[Any], size: int) -> Iterable[Tuple[int, List[Any]]]:
@@ -173,13 +220,9 @@ def _batched(items: List[Any], size: int) -> Iterable[Tuple[int, List[Any]]]:
         yield start, items[start : start + size]
 
 
-def _make_vector_id(case_id: str, label: str, metadata: Dict[str, Any], ordinal: int) -> str:
-    for key in ("event_id", "persona_id", "policy_id", "doc_id", "id"):
-        value = metadata.get(key)
-        if value:
-            return f"{case_id}-{label}-{str(value).replace(' ', '_')}"
-    return f"{case_id}-{label}-{ordinal}"
-
+# ---------------------------------------------------------------------------- #
+#                           LOAD EXISTING INDICES                              #
+# ---------------------------------------------------------------------------- #
 
 def load_indices():
     _ensure_configured()
@@ -196,7 +239,7 @@ def _load_pinecone_vectorstore(index_name: str, namespace: str, label: str):
     try:
         client = _get_pinecone_client()
         index = client.Index(index_name)
-    except Exception as exc:  # pragma: no cover - network errors
+    except Exception as exc:
         raise RuntimeError(f"Không thể truy cập Pinecone index '{index_name}'.") from exc
     return PineconeVectorStore(
         index=index,
@@ -205,6 +248,10 @@ def _load_pinecone_vectorstore(index_name: str, namespace: str, label: str):
         namespace=namespace,
     )
 
+
+# ---------------------------------------------------------------------------- #
+#                            PINECONE CONNECTION                               #
+# ---------------------------------------------------------------------------- #
 
 def _get_pinecone_client() -> Pinecone:
     global _pinecone_client
@@ -218,6 +265,10 @@ def _get_pinecone_client() -> Pinecone:
     _pinecone_client = Pinecone(**client_kwargs)
     return _pinecone_client
 
+
+# ---------------------------------------------------------------------------- #
+#                                CLI ENTRYPOINT                                #
+# ---------------------------------------------------------------------------- #
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Đồng bộ dữ liệu case lên Pinecone.")

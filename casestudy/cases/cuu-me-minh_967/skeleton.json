@@ -1,0 +1,63 @@
+{
+  "case_id": "cuu-me-minh_967",
+  "title": "Ngọn lửa và lòng dũng cảm",
+  "canon_events": [
+    {
+      "id": "CE1",
+      "title": "Phát hiện đám cháy",
+      "description": "Giữa buổi chiều tà, một ngôi nhà gỗ đang bốc cháy dữ dội, Minh cầu cứu mẹ mình.",
+      "success_criteria": [
+        "Minh không lao vào đám cháy",
+        "Gọi cứu hỏa kịp thời"
+      ],
+      "npc_appearance": [
+        {
+          "persona_id": "minh",
+          "role": "Người bạn thân"
+        }
+      ],
+      "timeout_turn": 9,
+      "preconditions": [],
+      "on_success": "Minh bình tĩnh chờ cứu hỏa đến",
+      "on_fail": "Minh có thể lao vào đám cháy"
+    },
+    {
+      "id": "CE2",
+      "title": "Lính cứu hỏa đến hiện trường",
+      "description": "Những người lính cứu hỏa xuất hiện, chuẩn bị thiết bị để dập lửa và cứu người.",
+      "success_criteria": [
+        "Lính cứu hỏa có mặt",
+        "Thực hiện quy trình an toàn"
+      ],
+      "npc_appearance": [
+        {
+          "persona_id": "linh_cuu_hoa",
+          "role": "Lính cứu hỏa"
+        }
+      ],
+      "timeout_turn": 8,
+      "preconditions": [],
+      "on_success": "Ngọn lửa được dập tắt và mẹ Minh được cứu",
+      "on_fail": "Ngọn lửa lan rộng hơn"
+    },
+    {
+      "id": "CE3",
+      "title": "Bàn giao và ổn định tình hình",
+      "description": "Mẹ của Minh được cứu ra ngoài, nhưng đã ngất xỉu. Các nhân viên y tế đến chăm sóc.",
+      "success_criteria": [
+        "Mẹ Minh được chăm sóc",
+        "Tình hình ổn định"
+      ],
+      "npc_appearance": [
+        {
+          "persona_id": "y_te",
+          "role": "Nhân viên y tế"
+        }
+      ],
+      "timeout_turn": 7,
+      "preconditions": [],
+      "on_success": "Tình hình được kiểm soát và bàn giao cho y tế",
+      "on_fail": "Cần thêm hỗ trợ cho mẹ Minh"
+    }
+  ]
+}

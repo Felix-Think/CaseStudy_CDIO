@@ -1,0 +1,63 @@
+{
+  "case_id": "cuu_nguoi_trong_rung_001",
+  "title": "Cuộc tìm kiếm giữa đêm tối",
+  "canon_events": [
+    {
+      "id": "CE1",
+      "title": "Nghe tiếng kêu cứu",
+      "description": "Tôi và Lê Văn Nam nghe thấy tiếng kêu cứu từ sâu trong rừng khi đang đứng bên gốc cây cổ thụ.",
+      "success_criteria": [
+        "Nghe rõ tiếng kêu cứu",
+        "Nhận diện được hướng phát ra tiếng kêu"
+      ],
+      "npc_appearance": [
+        {
+          "persona_id": "nam_le_van",
+          "role": "Bạn đồng hành"
+        }
+      ],
+      "timeout_turn": 9,
+      "preconditions": [],
+      "on_success": "Quyết định đi tìm kiếm người kêu cứu.",
+      "on_fail": "Có thể bỏ lỡ cơ hội cứu người."
+    },
+    {
+      "id": "CE2",
+      "title": "Gọi đội cứu hộ",
+      "description": "Chúng tôi quyết định gọi đội cứu hộ trước khi vào rừng tìm kiếm.",
+      "success_criteria": [
+        "Có tín hiệu điện thoại",
+        "Thông báo chính xác địa điểm"
+      ],
+      "npc_appearance": [
+        {
+          "persona_id": "nam_le_van",
+          "role": "Bạn đồng hành"
+        }
+      ],
+      "timeout_turn": 8,
+      "preconditions": [],
+      "on_success": "Đội cứu hộ sẽ đến kịp thời.",
+      "on_fail": "Có thể đội cứu hộ không nhận được thông tin."
+    },
+    {
+      "id": "CE3",
+      "title": "Bàn giao cho đội cứu hộ",
+      "description": "Đội cứu hộ đến nơi và nhận thông tin từ chúng tôi để tiến hành tìm kiếm.",
+      "success_criteria": [
+        "Đội cứu hộ hiểu rõ tình hình",
+        "Chúng tôi được hướng dẫn giữ an toàn"
+      ],
+      "npc_appearance": [
+        {
+          "persona_id": "cuu_ho",
+          "role": "Nhân viên cứu hộ"
+        }
+      ],
+      "timeout_turn": 7,
+      "preconditions": [],
+      "on_success": "Đội cứu hộ bắt đầu tìm kiếm người kêu cứu.",
+      "on_fail": "Cần thêm thông tin hoặc hỗ trợ từ chúng tôi."
+    }
+  ]
+}
