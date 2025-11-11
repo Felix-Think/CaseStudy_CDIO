@@ -1,12 +1,30 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Sequence, Union
 
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable
 
 from ..const import DEFAULT_CASE_ID
+
+
+def _stringify_criteria(values: Union[str, Sequence[Any], None]) -> str:
+    if isinstance(values, str):
+        return values or "Không còn."
+    if isinstance(values, Sequence):
+        parts: List[str] = []
+        for item in values:
+            if isinstance(item, dict):
+                description = str(item.get("description", "")).strip()
+                if description:
+                    parts.append(description)
+            else:
+                text = str(item).strip()
+                if text:
+                    parts.append(text)
+        return "; ".join(parts) if parts else "Không còn."
+    return "Không còn."
 
 
 def create_responder_chain(
@@ -66,10 +84,7 @@ def create_responder_chain(
         if success_criteria is None:
             # Backwards compatibility for older payloads.
             success_criteria = payload.get("required_actions", [])
-        if isinstance(success_criteria, list):
-            success_criteria_text = "; ".join(success_criteria) or "Không còn."
-        else:
-            success_criteria_text = success_criteria or "Không còn."
+        success_criteria_text = _stringify_criteria(success_criteria)
 
         completed_success = payload.get("completed_success_criteria", [])
         if isinstance(completed_success, list):

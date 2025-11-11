@@ -1,0 +1,25 @@
+{
+  "case_id": "case_2",
+  "personas": [
+    {
+      "id": "e",
+      "name": "e",
+      "role": "e",
+      "age": 1,
+      "gender": "1",
+      "background": "1",
+      "personality": "1",
+      "goal": "1",
+      "speech_pattern": "1",
+      "emotion_init": "1",
+      "emotion_during": [
+        "1"
+      ],
+      "emotion_end": "1",
+      "voice_tags": [
+        "1"
+      ],
+      "case_id": "case_2"
+    }
+  ]
+}

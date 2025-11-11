@@ -4,6 +4,7 @@ from langchain_core.runnables import RunnableConfig
 from ..memory import LogicMemory
 from ..state import RuntimeState
 from typing import Any
+from ..chains.action import normalize_success_criteria
 
 def build_action_node(
     logic_memory: LogicMemory,
@@ -17,7 +18,7 @@ def build_action_node(
         event_id = state.current_event
         event = logic_memory.get_event(event_id)
 
-        success_criteria_source = event.get("success_criteria", []) if event else []
+        success_criteria_source = normalize_success_criteria(event.get("success_criteria", [])) if event else []
         remaining_key = f"{event_id}_remaining_success_criteria"
         completed_key = f"{event_id}_completed_success_criteria"
 
@@ -25,7 +26,7 @@ def build_action_node(
         if remaining_success_criteria is None:
             remaining_success_criteria = list(success_criteria_source)
         else:
-            remaining_success_criteria = list(remaining_success_criteria)
+            remaining_success_criteria = normalize_success_criteria(remaining_success_criteria)
 
         existing_completed = state.event_summary.get(completed_key, [])
 

@@ -1,0 +1,47 @@
+{
+  "case_id": "case_2",
+  "title": "MMB",
+  "canon_events": [
+    {
+      "id": "CE1",
+      "title": "CEE",
+      "description": "Mô tả CE",
+      "success_criteria": [
+        {
+          "description": "CPR",
+          "levels": [
+            {
+              "score": 5,
+              "descriptor": "5"
+            },
+            {
+              "score": 4,
+              "descriptor": "4"
+            },
+            {
+              "score": 3,
+              "descriptor": "3"
+            },
+            {
+              "score": 2,
+              "descriptor": "2"
+            },
+            {
+              "score": 1,
+              "descriptor": "1"
+            }
+          ]
+        }
+      ],
+      "npc_appearance": [
+        {
+          "persona_id": "e;e"
+        }
+      ],
+      "timeout_turn": 3,
+      "preconditions": [],
+      "on_success": "CE1",
+      "on_fail": "CE2"
+    }
+  ]
+}

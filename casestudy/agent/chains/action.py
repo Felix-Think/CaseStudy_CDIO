@@ -1,11 +1,96 @@
 from __future__ import annotations
 
 import json
+import copy
 from typing import Any, Dict, List, Optional
 
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable
+
+SUCCESS_LEVEL_SCORES = [5, 4, 3, 2, 1]
+
+
+def _normalize_levels(levels_data: Optional[List[Any]], fallback_description: str) -> List[Dict[str, Any]]:
+    level_map: Dict[int, str] = {}
+    for level in levels_data or []:
+        if not isinstance(level, dict):
+            continue
+        score_value = level.get("score")
+        try:
+            score = int(score_value)
+        except (TypeError, ValueError):
+            continue
+        descriptor = str(level.get("descriptor", "")).strip()
+        if descriptor:
+            level_map[score] = descriptor
+
+    normalized_levels: List[Dict[str, Any]] = []
+    for score in SUCCESS_LEVEL_SCORES:
+        normalized_levels.append({"score": score, "descriptor": level_map.get(score, "")})
+
+    if not any(entry["descriptor"] for entry in normalized_levels):
+        normalized_levels[0]["descriptor"] = fallback_description or "Đạt yêu cầu cao nhất."
+
+    return normalized_levels
+
+
+def normalize_success_criteria(raw_criteria: Optional[List[Any]]) -> List[Dict[str, Any]]:
+    """
+    Convert raw success criteria (strings or rubric dicts) into a consistent rubric structure.
+    """
+    if not raw_criteria:
+        return []
+
+    normalized: List[Dict[str, Any]] = []
+    for idx, criterion in enumerate(raw_criteria, start=1):
+        if isinstance(criterion, dict):
+            description = str(criterion.get("description", "")).strip()
+            levels_data = criterion.get("levels")
+        else:
+            description = str(criterion or "").strip()
+            levels_data = None
+
+        if not description and not levels_data:
+            continue
+
+        normalized.append(
+            {
+                "description": description or f"Tiêu chí {idx}",
+                "levels": _normalize_levels(levels_data, description),
+            }
+        )
+    return normalized
+
+
+def format_rubric_for_prompt(rubric: List[Dict[str, Any]]) -> str:
+    """
+    Render rubric data into a readable prompt segment for the evaluator LLM.
+    """
+    blocks: List[str] = []
+    for idx, criterion in enumerate(rubric, start=1):
+        lines = [f"{idx}. {criterion['description']}"]
+        detailed_levels = 0
+        for level in criterion.get("levels", []):
+            descriptor = str(level.get("descriptor", "")).strip()
+            if not descriptor:
+                continue
+            detailed_levels += 1
+            lines.append(f"   - Điểm {level.get('score')}: {descriptor}")
+        if detailed_levels == 0:
+            lines.append("   - Không có mô tả chi tiết; đánh giá dựa trên mô tả tổng quan.")
+        blocks.append("\n".join(lines))
+    return "\n".join(blocks)
+
+
+def score_to_status(score: Optional[int]) -> str:
+    if score is None:
+        return "not_met"
+    if score >= 4:
+        return "satisfied"
+    if score >= 2:
+        return "partial"
+    return "not_met"
 
 
 def create_action_evaluator_chain(
@@ -16,10 +101,11 @@ def create_action_evaluator_chain(
     """
     Evaluate learner actions against canon event success criteria using an LLM.
 
-    The evaluator asks the language model to review the learner turn and classify each
-    numbered criterion as `satisfied`, `partial`, or `not_met`. Criteria marked
-    `satisfied` are removed from the outstanding list; `partial` criteria remain but are
-    surfaced for coaching feedback. When every criterion is satisfied, the event passes.
+    The evaluator asks the language model to review the learner turn and score each
+    rubric-based criterion from 1 to 5, accompanied by a short analysis. A score of 4-5
+    marks the criterion as `satisfied`, 2-3 as `partial`, and 1 as `not_met`. Criteria
+    that are satisfied are removed from the outstanding list; the rest remain for future
+    attempts. When every criterion is satisfied, the event passes.
 
     Parameters
     ----------
@@ -38,18 +124,18 @@ def create_action_evaluator_chain(
             (
                 "system",
                 (
-                    "Bạn là giám khảo. Đánh giá từng tiêu chí theo suy luận ngữ nghĩa. "
-                    "Chỉ trả về JSON thuần theo mẫu (ví dụ, hãy thay nội dung cho đúng dữ liệu thật):\n"
+                    "Bạn là giám khảo sử dụng rubric 5 mức để chấm điểm từng tiêu chí. "
+                    "Chỉ trả về JSON thuần theo mẫu (hãy thay dữ liệu cho đúng tình huống thực tế):\n"
                     "{{\n"
                     '  "evaluations": [\n'
-                    '    {{"id": 1, "status": "satisfied"}},\n'
-                    '    {{"id": 2, "status": "partial"}},\n'
-                    '    {{"id": 3, "status": "not_met"}}\n'
+                    '    {{"id": 1, "score": 5, "analysis": "Hành động đáp ứng đầy đủ mô tả mức 5 vì."}},\n'
+                    '    {{"id": 2, "score": 3, "analysis": "Mới thực hiện được một phần yêu cầu."}}\n'
                     "  ]\n"
                     "}}\n"
-                    "Ràng buộc:\n"
-                    "- id là số nguyên dương.\n"
-                    "- status chỉ được là một trong: satisfied, partial, not_met.\n"
+                    "Quy định:\n"
+                    "- id là số thứ tự tiêu chí.\n"
+                    "- score là số nguyên 1-5, dựa trên rubric được cung cấp.\n"
+                    "- analysis giải thích ngắn (≤25 từ) vì sao đạt điểm đó.\n"
                     "Không thêm văn bản ngoài JSON."
                 ),
             ),
@@ -58,12 +144,10 @@ def create_action_evaluator_chain(
                 (
                     "Hành động của học viên:\n"
                     "{user_action}\n\n"
-                    "Tiêu chí thành công:\n"
+                    "Rubric tiêu chí thành công:\n"
                     "{success_criteria}\n\n"
-                    "Đánh giá dựa trên ý nghĩa, không chỉ so trùng từ ngữ. "
-                    "Nếu hành động đáp ứng đầy đủ tiêu chí → \"satisfied\". "
-                    "Nếu mới đạt một phần → \"partial\". "
-                    "Nếu chưa đáp ứng → \"not_met\".\n"
+                    "Hướng dẫn: Dựa trên rubric, hãy chấm điểm 1-5 cho từng tiêu chí "
+                    "và cung cấp phân tích ngắn gọn lý do.\n"
                 ),
             ),
         ]
@@ -74,14 +158,14 @@ def create_action_evaluator_chain(
 
     def evaluate(payload: Dict[str, Any]) -> Dict[str, Any]:
         user_action = (payload.get("user_action") or "").strip()
-        success_criteria: Optional[List[str]] = payload.get("success_criteria")
-        if success_criteria is None:
+        success_criteria_input: Optional[List[Any]] = payload.get("success_criteria")
+        if success_criteria_input is None:
             # Backwards compatibility with older payloads.
-            success_criteria = payload.get("required_actions", [])
+            success_criteria_input = payload.get("required_actions", [])
 
-        success_criteria = list(success_criteria or [])
+        rubric_criteria = normalize_success_criteria(success_criteria_input)
 
-        if not success_criteria:
+        if not rubric_criteria:
             return {
                 "status": "pass",
                 "matched_actions": [],
@@ -97,27 +181,25 @@ def create_action_evaluator_chain(
                 "matched_actions": [],
                 "satisfied_success_criteria": [],
                 "partial_success_criteria": [],
-                "remaining_success_criteria": success_criteria,
+                "remaining_success_criteria": rubric_criteria,
                 "scores": [],
             }
 
-        numbered_criteria = "\n".join(
-            f"{idx}. {criterion}" for idx, criterion in enumerate(success_criteria, start=1)
-        )
+        rubric_text = format_rubric_for_prompt(rubric_criteria)
 
-        # try:
         response = chain.invoke(
             {
                 "user_action": user_action,
-                "success_criteria": numbered_criteria,
+                "success_criteria": rubric_text,
             }
         )
-        parsed = json.loads(response)
-        # except Exception:
-        #     parsed = {}
+        try:
+            parsed = json.loads(response)
+        except json.JSONDecodeError:
+            parsed = {}
 
         evaluations = parsed.get("evaluations", []) if isinstance(parsed, dict) else []
-        status_map: Dict[int, str] = {}
+        evaluation_map: Dict[int, Dict[str, Any]] = {}
         for item in evaluations:
             if not isinstance(item, dict):
                 continue
@@ -128,30 +210,57 @@ def create_action_evaluator_chain(
             except (TypeError, ValueError):
                 continue
 
-            status = str(item.get("status", "")).strip().lower()
-            if status in {"satisfied", "partial", "not_met"}:
-                status_map[idx] = status
+            raw_score = item.get("score")
+            try:
+                score = int(raw_score)
+            except (TypeError, ValueError):
+                continue
+
+            score = max(min(score, SUCCESS_LEVEL_SCORES[0]), SUCCESS_LEVEL_SCORES[-1])
+            analysis = str(item.get("analysis", "")).strip()
+            evaluation_map[idx] = {"score": score, "analysis": analysis}
+
+        if not evaluation_map:
+            return {
+                "status": parse_error_fallback,
+                "matched_actions": [],
+                "satisfied_success_criteria": [],
+                "partial_success_criteria": [],
+                "remaining_success_criteria": rubric_criteria,
+                "scores": [],
+            }
 
         satisfied: List[str] = []
         partial: List[str] = []
-        remaining: List[str] = []
-        scores: List[Any] = []
+        remaining: List[Dict[str, Any]] = []
+        scores: List[Dict[str, Any]] = []
 
-        for idx, criterion in enumerate(success_criteria, start=1):
-            status_value = status_map.get(idx, "not_met")
-            scores.append((criterion, status_value))
+        for idx, criterion in enumerate(rubric_criteria, start=1):
+            eval_result = evaluation_map.get(idx) or {}
+            score_value = eval_result.get("score")
+            analysis_value = eval_result.get("analysis", "")
+            status_value = score_to_status(score_value)
+
+            scores.append(
+                {
+                    "id": idx,
+                    "criterion": criterion["description"],
+                    "score": score_value,
+                    "analysis": analysis_value,
+                }
+            )
+
             if status_value == "satisfied":
-                satisfied.append(criterion)
+                satisfied.append(criterion["description"])
             elif status_value == "partial":
-                partial.append(criterion)
-                remaining.append(criterion)
+                partial.append(criterion["description"])
+                score_numeric = score_value if isinstance(score_value, int) else None
+                if score_numeric is None or score_numeric < 3:
+                    remaining.append(copy.deepcopy(criterion))
             else:
-                remaining.append(criterion)
+                remaining.append(copy.deepcopy(criterion))
 
-        if not status_map and success_criteria:
-            status = parse_error_fallback
-            scores = []
-        elif not remaining:
+        if not remaining:
             status = "pass"
         elif satisfied or partial:
             status = "needs_attention"
