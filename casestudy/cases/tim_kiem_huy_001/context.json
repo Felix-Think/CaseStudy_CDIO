@@ -1,0 +1,37 @@
+{
+  "case_id": "tim_kiem_huy_001",
+  "topic": "Cuộc tìm kiếm người lạc trong rừng",
+  "initial_context": {
+    "scene": {
+      "time": "Chiều u ám",
+      "weather": "Mưa bất chợt",
+      "location": "Khu rừng rậm rạp",
+      "noise_level": "Tiếng lá cây xào xạc"
+    },
+    "index_event": {
+      "summary": "Nhóm cứu hộ nhận cuộc gọi khẩn cấp về Huy",
+      "current_state": "Đang tìm kiếm Huy",
+      "who_first_on_scene": "Minh"
+    },
+    "available_resources": {
+      "bo-am": [
+        "Bộ đàm liên lạc",
+        "NOTE: Giúp giữ liên lạc trong quá trình tìm kiếm"
+      ]
+    },
+    "constraints": [
+      "Không được rời nhau quá 20 mét"
+    ],
+    "policies_safety_legal": [
+      "Quy trình cứu hộ"
+    ],
+    "handover_target": "Bàn giao Huy cho đội y tế",
+    "success_end_state": "",
+    "available_resources_meta": {
+      "bo-am": {
+        "label": "Bộ đàm",
+        "note": "Giúp giữ liên lạc trong quá trình tìm kiếm"
+      }
+    }
+  }
+}

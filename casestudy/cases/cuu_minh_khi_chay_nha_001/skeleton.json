@@ -1,0 +1,67 @@
+{
+  "case_id": "cuu_minh_khi_chay_nha_001",
+  "title": "Ngọn lửa và sự cứu rỗi",
+  "canon_events": [
+    {
+      "id": "CE1",
+      "title": "Phát hiện hỏa hoạn",
+      "description": "Minh đang ở nhà một mình thì ngọn lửa bất ngờ bùng phát từ bếp.",
+      "success_criteria": [
+        "Minh nhận ra hỏa hoạn",
+        "Nghe tiếng kêu cứu"
+      ],
+      "npc_appearance": [
+        {
+          "persona_id": "minh",
+          "role": "nạn nhân"
+        }
+      ],
+      "timeout_turn": 9,
+      "preconditions": [],
+      "on_success": "Minh sẽ tìm cách thoát ra",
+      "on_fail": "Ngọn lửa có thể lan rộng hơn"
+    },
+    {
+      "id": "CE2",
+      "title": "Cố gắng cứu Minh",
+      "description": "Người kể chuyện và Lan cố gắng thuyết phục Minh thoát ra ngoài.",
+      "success_criteria": [
+        "Minh mở cửa chính",
+        "Lan không vào trong"
+      ],
+      "npc_appearance": [
+        {
+          "persona_id": "lan",
+          "role": "bạn gái của Minh"
+        },
+        {
+          "persona_id": "nguoikhac",
+          "role": "người hàng xóm"
+        }
+      ],
+      "timeout_turn": 8,
+      "preconditions": [],
+      "on_success": "Minh sẽ thoát ra an toàn",
+      "on_fail": "Có thể xảy ra thương tích cho Minh"
+    },
+    {
+      "id": "CE3",
+      "title": "Minh thoát ra an toàn",
+      "description": "Minh lao ra khỏi cửa chính, được cứu sống bởi sự giúp đỡ của mọi người.",
+      "success_criteria": [
+        "Minh ra ngoài an toàn",
+        "Lực lượng cứu hỏa đến kịp thời"
+      ],
+      "npc_appearance": [
+        {
+          "persona_id": "minh",
+          "role": "nạn nhân"
+        }
+      ],
+      "timeout_turn": 7,
+      "preconditions": [],
+      "on_success": "Tình huống được giải quyết, mọi người an toàn",
+      "on_fail": "Cần thêm hỗ trợ từ lực lượng cứu hỏa"
+    }
+  ]
+}

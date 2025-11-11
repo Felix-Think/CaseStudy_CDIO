@@ -1,0 +1,44 @@
+{
+  "case_id": "cuu_minh_khi_chay_nha_001",
+  "topic": "Cứu Minh khỏi ngọn lửa",
+  "initial_context": {
+    "scene": {
+      "time": "buổi chiều",
+      "weather": "mây xám xịt",
+      "location": "ngôi nhà cũ",
+      "noise_level": "tiếng kêu cứu"
+    },
+    "index_event": {
+      "summary": "Minh bị mắc kẹt trong ngọn lửa",
+      "current_state": "ngôi nhà đang cháy",
+      "who_first_on_scene": "người kể chuyện"
+    },
+    "available_resources": {
+      "phone": [
+        "điện thoại để gọi cứu hỏa"
+      ],
+      "neighbors": [
+        "hàng xóm để hỗ trợ"
+      ]
+    },
+    "constraints": [
+      "Không vào khu vực nguy hiểm",
+      "Chờ lực lượng cứu hỏa"
+    ],
+    "policies_safety_legal": [
+      "Quy trình an toàn khi có hỏa hoạn"
+    ],
+    "handover_target": "Bàn giao Minh cho lực lượng cứu hỏa",
+    "success_end_state": "",
+    "available_resources_meta": {
+      "phone": {
+        "label": "phone",
+        "note": ""
+      },
+      "neighbors": {
+        "label": "neighbors",
+        "note": ""
+      }
+    }
+  }
+}

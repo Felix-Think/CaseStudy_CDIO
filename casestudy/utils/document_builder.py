@@ -187,7 +187,7 @@ def _build_skeleton_documents(skeleton: Dict) -> List[Document]:
         segments = [
             f"Canon Event {event.get('id', idx)}: {event.get('title', 'Không tiêu đề')}.",
             f"Mô tả: {event.get('description', 'Không mô tả')}.",
-            f"Tiêu chí thành công: {', '.join(success_criteria) if success_criteria else 'Chưa rõ'}.",
+            f"Tiêu chí thành công: {', '.join([item['description'] for item in success_criteria]) if success_criteria else 'Chưa rõ'}."
         ]
         if required_actions:
             segments.append(f"Hành động bắt buộc: {', '.join(required_actions)}.")

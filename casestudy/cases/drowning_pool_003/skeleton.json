@@ -1,0 +1,81 @@
+{
+  "case_id": "drowning_pool_003",
+  "title": "11",
+  "canon_events": [
+    {
+      "id": "CE1",
+      "title": "Đánh giá ban đầu & an toàn hiện trường",
+      "description": "Thực hiện kiểm tra an toàn bản thân/hiện trường, tiếp cận nạn nhân đúng quy trình và đánh giá nhanh mức đáp ứng, hô hấp, tuần hoàn.",
+      "success_criteria": [
+        {
+          "description": "Xác định rủi ro khu vực nước/trơn trượt và kiểm soát đám đông",
+          "levels": [
+            {
+              "score": 5,
+              "descriptor": "quan sát tình hình xung quanh hiện trường, giải tám đám đông"
+            },
+            {
+              "score": 4,
+              "descriptor": "giải tán đám đông"
+            },
+            {
+              "score": 3,
+              "descriptor": "quan sát tình hình"
+            },
+            {
+              "score": 2,
+              "descriptor": "đuổi người khác tránh ra"
+            },
+            {
+              "score": 1,
+              "descriptor": "không làm gì"
+            }
+          ]
+        },
+        {
+          "description": "Tiếp cận đúng kỹ thuật, giới thiệu vai trò và xin hỗ trợ",
+          "levels": [
+            {
+              "score": 5,
+              "descriptor": "tiếp cận và xác định vấn đề,xử lí bình tĩnh"
+            },
+            {
+              "score": 4,
+              "descriptor": "tiếp cận và xử lí vấn đề"
+            },
+            {
+              "score": 3,
+              "descriptor": "bình tĩnh tiếp cận"
+            },
+            {
+              "score": 2,
+              "descriptor": "tiếp cận nạn nhân"
+            },
+            {
+              "score": 1,
+              "descriptor": "vội vàng chạy tới"
+            }
+          ]
+        }
+      ],
+      "npc_appearance": [
+        {
+          "persona_id": "P1",
+          "role": "Nạn nhân"
+        },
+        {
+          "persona_id": "P3",
+          "role": "Nhân viên cơ sở"
+        },
+        {
+          "persona_id": "P4",
+          "role": "Người bơi gần đó"
+        }
+      ],
+      "timeout_turn": 3,
+      "preconditions": [],
+      "on_success": null,
+      "on_fail": "CE1_RETRY"
+    }
+  ]
+}

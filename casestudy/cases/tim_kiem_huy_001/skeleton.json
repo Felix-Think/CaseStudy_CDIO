@@ -1,0 +1,48 @@
+{
+  "case_id": "tim_kiem_huy_001",
+  "title": "Cuộc tìm kiếm đầy hồi hộp giữa rừng sâu",
+  "canon_events": [
+    {
+      "id": "CE1",
+      "title": "Nhận cuộc gọi khẩn cấp",
+      "description": "Nhóm cứu hộ nhận được thông tin về Huy bị lạc trong rừng.",
+      "success_criteria": [
+        {
+          "description": "Nhóm quyết định hành động ngay",
+          "levels": [
+            {
+              "score": 5,
+              "descriptor": "tiếp cận nạn nhân đồng thời quan sát hiện trường"
+            },
+            {
+              "score": 4,
+              "descriptor": "tiếp cận nạn nhân nhanh chóng"
+            },
+            {
+              "score": 3,
+              "descriptor": "quan sát hiện trường"
+            },
+            {
+              "score": 2,
+              "descriptor": "chạy nhành đến"
+            },
+            {
+              "score": 1,
+              "descriptor": "hô hoán"
+            }
+          ]
+        }
+      ],
+      "npc_appearance": [
+        {
+          "persona_id": "thao",
+          "role": "Thành viên nhóm cứu hộ"
+        }
+      ],
+      "timeout_turn": 9,
+      "preconditions": [],
+      "on_success": "Nhóm bắt đầu tìm kiếm Huy",
+      "on_fail": "Thời gian trôi qua, Huy có thể gặp nguy hiểm"
+    }
+  ]
+}

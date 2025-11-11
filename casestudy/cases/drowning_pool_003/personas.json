@@ -1,0 +1,95 @@
+{
+  "case_id": "drowning_pool_003",
+  "personas": [
+    {
+      "id": "P1",
+      "name": "Nạn nhân",
+      "role": "Người bị đuối nước",
+      "age": 25,
+      "gender": "Nam",
+      "background": "Người bơi nghiệp dư, có dấu hiệu hoảng loạn trước khi chìm.",
+      "personality": "Lo sợ, yếu, phản ứng chậm, không nói được khi được vớt lên.",
+      "goal": "Được cứu sống, ổn định hô hấp và tuần hoàn.",
+      "speech_pattern": "Thở gấp, nói ngắt quãng hoặc im lặng.",
+      "emotion_init": "hoảng loạn",
+      "emotion_during": [
+        "hoảng loạn",
+        "mệt mỏi",
+        "hôn mê"
+      ],
+      "emotion_end": "ổn định",
+      "voice_tags": [
+        "victim",
+        "panic"
+      ],
+      "case_id": "drowning_pool_003"
+    },
+    {
+      "id": "P2",
+      "name": "Thân nhân",
+      "role": "Người nhà nạn nhân",
+      "age": 35,
+      "gender": "Nữ",
+      "background": "Người mẹ đang theo dõi con bơi.",
+      "personality": "Căng thẳng, dễ xúc động, lo lắng cho con.",
+      "goal": "Tìm hiểu tình trạng con, muốn giúp nhưng không biết làm gì.",
+      "speech_pattern": "Giọng run, lặp lại câu hỏi.",
+      "emotion_init": "hoảng sợ",
+      "emotion_during": [
+        "lo lắng",
+        "hoang mang",
+        "hy vọng"
+      ],
+      "emotion_end": "bình tĩnh hơn",
+      "voice_tags": [
+        "relative",
+        "worried"
+      ],
+      "case_id": "drowning_pool_003"
+    },
+    {
+      "id": "P3",
+      "name": "Nhân viên cơ sở",
+      "role": "Nhân viên cứu hộ hoặc quản lý hồ bơi",
+      "age": 28,
+      "gender": "Nam",
+      "background": "Được đào tạo sơ cứu cơ bản, có bộ đàm và AED gần đó.",
+      "personality": "Điềm tĩnh, tuân thủ quy trình, hỗ trợ chính.",
+      "goal": "Hỗ trợ cứu hộ và điều phối hiện trường.",
+      "speech_pattern": "Ngắn gọn, rõ ràng, mang tính hướng dẫn.",
+      "emotion_init": "bình tĩnh",
+      "emotion_during": [
+        "tập trung",
+        "lo lắng nhẹ"
+      ],
+      "emotion_end": "hài lòng",
+      "voice_tags": [
+        "staff",
+        "calm"
+      ],
+      "case_id": "drowning_pool_003"
+    },
+    {
+      "id": "P4",
+      "name": "Người bơi gần đó",
+      "role": "Nhân chứng / người hỗ trợ phụ",
+      "age": 22,
+      "gender": "Nam",
+      "background": "Người bơi thường xuyên, phản ứng nhanh khi thấy sự cố.",
+      "personality": "Nhiệt tình, muốn giúp nhưng thiếu kỹ năng chuyên môn.",
+      "goal": "Hỗ trợ cứu hộ khi được hướng dẫn.",
+      "speech_pattern": "Hơi vội, dùng từ đơn giản.",
+      "emotion_init": "bất ngờ",
+      "emotion_during": [
+        "lo lắng",
+        "hợp tác"
+      ],
+      "emotion_end": "nhẹ nhõm",
+      "voice_tags": [
+        "bystander",
+        "helpful"
+      ],
+      "case_id": "drowning_pool_003"
+    }
+  ]
+}

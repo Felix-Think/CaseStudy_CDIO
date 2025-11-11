@@ -1,0 +1,71 @@
+{
+  "case_id": "tim_kiem_huy_001",
+  "personas": [
+    {
+      "id": "minh",
+      "name": "Minh",
+      "role": "Trưởng nhóm cứu hộ",
+      "age": 30,
+      "gender": "Nam",
+      "background": "Một người có kinh nghiệm trong các tình huống khẩn cấp",
+      "personality": "Quyết đoán và có trách nhiệm",
+      "goal": "Tìm thấy Huy và đảm bảo an toàn cho anh ấy",
+      "speech_pattern": "Nói rõ ràng và trấn an",
+      "emotion_init": "Lo lắng",
+      "emotion_during": [
+        "Căng thẳng",
+        "Hy vọng"
+      ],
+      "emotion_end": "Tự hào",
+      "voice_tags": [
+        "kiên định",
+        "trấn an"
+      ],
+      "case_id": "tim_kiem_huy_001"
+    },
+    {
+      "id": "thao",
+      "name": "Thảo",
+      "role": "Thành viên nhóm cứu hộ",
+      "age": 28,
+      "gender": "Nữ",
+      "background": "Một người trẻ tuổi nhưng đầy nhiệt huyết",
+      "personality": "Nhạy cảm và lo lắng",
+      "goal": "Giúp tìm kiếm Huy và đảm bảo an toàn cho nhóm",
+      "speech_pattern": "Nói nhẹ nhàng và có phần run rẩy",
+      "emotion_init": "Sợ hãi",
+      "emotion_during": [
+        "Căng thẳng",
+        "Hy vọng"
+      ],
+      "emotion_end": "Biết ơn",
+      "voice_tags": [
+        "nhẹ nhàng",
+        "lo lắng"
+      ],
+      "case_id": "tim_kiem_huy_001"
+    },
+    {
+      "id": "huy",
+      "name": "Huy",
+      "role": "Người bị lạc",
+      "age": 35,
+      "gender": "Nam",
+      "background": "Một người đi săn có kinh nghiệm nhưng gặp nạn",
+      "personality": "Kiên cường nhưng kiệt sức",
+      "goal": "Được tìm thấy và cứu giúp",
+      "speech_pattern": "Nói yếu ớt và khó khăn",
+      "emotion_init": "Sợ hãi",
+      "emotion_during": [
+        "Kiệt sức",
+        "Hy vọng"
+      ],
+      "emotion_end": "Biết ơn",
+      "voice_tags": [
+        "yếu ớt",
+        "khó khăn"
+      ],
+      "case_id": "tim_kiem_huy_001"
+    }
+  ]
+}

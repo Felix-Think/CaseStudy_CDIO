@@ -172,6 +172,13 @@
                 </button>
                 <button
                   type="button"
+                  data-json-export="skeleton"
+                  class="rounded-full border border-primary-200 px-4 py-1.5 text-xs font-semibold text-primary-600 transition hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                >
+                  Luu JSON
+                </button>
+                <button
+                  type="button"
                   data-json-clear="skeleton"
                   class="rounded-full border border-slate-200 px-4 py-1.5 text-xs font-semibold text-slate-500 transition hover:border-slate-300 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-200"
                 >
@@ -200,6 +207,13 @@
                 </button>
                 <button
                   type="button"
+                  data-json-export="context"
+                  class="rounded-full border border-primary-200 px-4 py-1.5 text-xs font-semibold text-primary-600 transition hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                >
+                  Luu JSON
+                </button>
+                <button
+                  type="button"
                   data-json-clear="context"
                   class="rounded-full border border-slate-200 px-4 py-1.5 text-xs font-semibold text-slate-500 transition hover:border-slate-300 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-200"
                 >
@@ -225,6 +239,13 @@
                   class="rounded-full bg-primary-600 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
                 >
                   Chọn file
+                </button>
+                <button
+                  type="button"
+                  data-json-export="personas"
+                  class="rounded-full border border-primary-200 px-4 py-1.5 text-xs font-semibold text-primary-600 transition hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                >
+                  Luu JSON
                 </button>
                 <button
                   type="button"
@@ -757,6 +778,7 @@
       setupTabs();
       setupNavigation();
       setupJsonImport();
+      setupJsonExport();
       setupDraftAgent();
       refreshImportStatuses();
       activateTab('skeleton');
@@ -864,6 +886,27 @@
               showNotification(error.message || 'Không thể đọc file JSON.', 'error');
             } finally {
               input.value = '';
+            }
+          });
+        });
+      }
+
+      function setupJsonExport() {
+        JSON_SECTION_TYPES.forEach((type) => {
+          const button = document.querySelector(`[data-json-export="${type}"]`);
+          if (!button) {
+            return;
+          }
+          button.addEventListener('click', (event) => {
+            event.preventDefault();
+            try {
+              const exportEntry = buildSectionExportPayload(type);
+              downloadJsonFile(exportEntry.fileName, exportEntry.payload);
+              const label = JSON_SECTION_LABELS[type] || type;
+              showNotification(`Da luu ${label} ra '${exportEntry.fileName}'.`);
+            } catch (error) {
+              console.error(error);
+              showNotification(error.message || 'Khong the luu file JSON.', 'error');
             }
           });
         });
@@ -1156,6 +1199,67 @@
         }
 
         statusEl.textContent = summaryParts.join(' • ');
+      }
+
+      function buildSectionExportPayload(type) {
+        if (type === 'skeleton') {
+          const skeleton = controllers.skeleton.read() || {};
+          const caseId = skeleton.case_id || getAggregatedCaseId() || `draft_${type}`;
+          const normalizedSkeleton = { ...skeleton, case_id: skeleton.case_id || caseId };
+          const slug = slugify(caseId, `case-${type}`);
+          return {
+            fileName: `${slug}-skeleton.json`,
+            payload: {
+              case_id: caseId,
+              skeleton: normalizedSkeleton,
+            },
+          };
+        }
+
+        if (type === 'context') {
+          const context = controllers.context.read() || {};
+          const caseId = context.case_id || getAggregatedCaseId() || `draft_${type}`;
+          const normalizedContext = { ...context, case_id: context.case_id || caseId };
+          const slug = slugify(caseId, `case-${type}`);
+          return {
+            fileName: `${slug}-context.json`,
+            payload: {
+              case_id: caseId,
+              context: normalizedContext,
+            },
+          };
+        }
+
+        if (type === 'personas') {
+          const personasPayload = controllers.personas.read() || {};
+          const caseId = personasPayload.case_id || getAggregatedCaseId() || `draft_${type}`;
+          const normalizedPersonas = { ...personasPayload, case_id: personasPayload.case_id || caseId };
+          const slug = slugify(caseId, `case-${type}`);
+          return {
+            fileName: `${slug}-personas.json`,
+            payload: {
+              case_id: caseId,
+              personas: normalizedPersonas,
+            },
+          };
+        }
+
+        throw new Error('Loai file khong duoc ho tro.');
+      }
+
+      function downloadJsonFile(fileName, payload) {
+        const json = typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+        }, 0);
       }
 
       function handleCaseSave(event) {
@@ -2533,3 +2637,7 @@
   </script>
 </body>
 </html>
+
+
+
+
