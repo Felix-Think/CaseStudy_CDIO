@@ -17,6 +17,7 @@ class Settings(BaseSettings):
         alias="MONGO_URI",
     )
     mongo_db: str = Field(default="case_study_db", alias="MONGO_DB")
+    mongo_user_db: str = Field(default="User", alias="MONGO_USER_DB")
     mongo_timeout_ms: int = Field(
         default=2_000, alias="MONGO_TIMEOUT_MS", description="Mongo client timeout (ms)."
     )
