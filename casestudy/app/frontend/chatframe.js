@@ -15,6 +15,20 @@ const sceneBody = document.getElementById("scene-body");
 const successTitle = document.getElementById("success-title");
 const successList = document.getElementById("success-list");
 const successEmpty = document.getElementById("success-empty");
+const sttToggle = document.getElementById("stt-toggle");
+const ttsToggle = document.getElementById("tts-toggle");
+const voiceStatus = document.getElementById("voice-status");
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const hasSttSupport = typeof SpeechRecognition === "function";
+const hasLocalTtsSupport = Boolean(window.speechSynthesis && window.SpeechSynthesisUtterance);
+const canPlayAudioElement = typeof Audio === "function";
+const hasAnyTtsSupport = hasLocalTtsSupport || canPlayAudioElement;
+
+let recognitionInstance = null;
+let sttListening = false;
+let sttShouldContinue = false;
+let ttsEnabled = false;
 
 const params = new URLSearchParams(window.location.search);
 const sessionState = {
@@ -22,7 +36,12 @@ const sessionState = {
   sessionId: params.get("session_id"),
   state: null,
   ownerRecorded: false,
+  lastServerTts: null,
 };
+
+let activeServerAudio = null;
+let serverSegmentQueue = [];
+let currentServerSegment = null;
 
 const storageKey = (sessionId) => `${STORAGE_PREFIX}${sessionId}`;
 
@@ -48,6 +67,404 @@ const determineRole = (speaker) => {
 const normalizeSpeaker = (speaker, fallbackRole) => {
   if (!speaker) return fallbackRole === "user" ? "Bạn" : "AI";
   return speaker;
+};
+
+const setButtonPressed = (button, pressed) => {
+  if (!button) return;
+  button.setAttribute("aria-pressed", pressed ? "true" : "false");
+};
+
+const updateSttButtonLabel = () => {
+  if (!sttToggle) return;
+  const label = sttShouldContinue || sttListening ? "Dung" : "Thu am";
+  const span = sttToggle.querySelector("span");
+  if (span) {
+    span.textContent = label;
+  }
+};
+
+const updateVoiceStatus = (message, tone = "neutral") => {
+  if (!voiceStatus) return;
+  voiceStatus.textContent = message;
+  voiceStatus.dataset.tone = tone;
+};
+
+const refreshVoiceStatus = () => {
+  if (!voiceStatus) return;
+  if (!hasSttSupport && !hasAnyTtsSupport) {
+    updateVoiceStatus("Trinh duyet chua ho tro giong.", "error");
+    return;
+  }
+  if (sttListening) {
+    updateVoiceStatus("Dang nghe... noi ro de nhan.", "active");
+    return;
+  }
+  if (activeServerAudio) {
+    const label = currentServerSegment || "AI";
+    updateVoiceStatus(`Dang phat ${label}...`, "active");
+    return;
+  }
+  if (ttsEnabled) {
+    updateVoiceStatus("Se doc tu dong phan hoi AI.", "active");
+    return;
+  }
+  updateVoiceStatus("Chuc nang giong san sang.");
+};
+
+const appendSpeechTextToInput = (spokenText) => {
+  if (!chatInput || !spokenText) return;
+  const incoming = spokenText.trim();
+  if (!incoming) return;
+  const existing = chatInput.value.trim();
+  chatInput.value = existing ? `${existing} ${incoming}` : incoming;
+  chatInput.dispatchEvent(new Event("input", { bubbles: true }));
+  chatInput.focus();
+};
+
+const normalizeServerTts = (payload) => {
+  if (!payload) return null;
+  const segments = Array.isArray(payload.tts_segments)
+    ? payload.tts_segments
+        .map((segment) => ({
+          speaker: segment?.speaker || "AI",
+          personaId: segment?.persona_id || null,
+          text: segment?.text || "",
+          voice: segment?.voice || payload.tts_voice || "",
+          audio: segment?.audio || null,
+          mimeType: segment?.mime_type || payload.tts_mime_type || "audio/wav",
+        }))
+        .filter((segment) => segment.text || segment.audio)
+    : [];
+  const combinedSegmentText = segments
+    .map((segment) => (segment.text ? `${segment.speaker}: ${segment.text}` : ""))
+    .filter(Boolean)
+    .join(" ");
+  const text =
+    payload.tts_text ||
+    combinedSegmentText ||
+    (payload.state && payload.state.ai_reply) ||
+    payload.ai_reply ||
+    "";
+  const audio = payload.tts_audio || "";
+  if (!text && !audio && !segments.length) {
+    return null;
+  }
+  return {
+    audio,
+    mimeType: payload.tts_mime_type || "audio/wav",
+    voice: payload.tts_voice || "",
+    model: payload.tts_model || "",
+    text,
+    segments,
+  };
+};
+
+const storeServerTts = (payload) => {
+  sessionState.lastServerTts = normalizeServerTts(payload);
+  return sessionState.lastServerTts;
+};
+
+const stopServerAudio = () => {
+  if (activeServerAudio) {
+    try {
+      activeServerAudio.pause();
+    } catch (error) {
+      // ignore
+    }
+  }
+  activeServerAudio = null;
+  serverSegmentQueue = [];
+  currentServerSegment = null;
+  if (ttsEnabled) {
+    refreshVoiceStatus();
+  }
+};
+
+const playServerAudioSource = (segment) => {
+  if (!segment || !segment.audio || !canPlayAudioElement) return false;
+  const mime = segment.mimeType || "audio/wav";
+  const source = `data:${mime};base64,${segment.audio}`;
+  const label = segment.speaker || "AI";
+  try {
+    const audio = new Audio(source);
+    activeServerAudio = audio;
+    currentServerSegment = label;
+    updateVoiceStatus(`Dang phat ${label}...`, "active");
+    audio.addEventListener("ended", () => {
+      if (activeServerAudio !== audio) {
+        return;
+      }
+      activeServerAudio = null;
+      if (serverSegmentQueue.length) {
+        const next = serverSegmentQueue.shift();
+        if (!playServerAudioSource(next)) {
+          currentServerSegment = null;
+          refreshVoiceStatus();
+        }
+      } else {
+        currentServerSegment = null;
+        refreshVoiceStatus();
+      }
+    });
+    audio.addEventListener("error", (event) => {
+      console.warn("Server TTS playback error:", event);
+      if (activeServerAudio !== audio) {
+        return;
+      }
+      activeServerAudio = null;
+      if (serverSegmentQueue.length) {
+        const next = serverSegmentQueue.shift();
+        if (!playServerAudioSource(next)) {
+          currentServerSegment = null;
+          updateVoiceStatus("Khong phat duoc am thanh AI.", "error");
+        }
+      } else {
+        currentServerSegment = null;
+        updateVoiceStatus("Khong phat duoc am thanh AI.", "error");
+      }
+    });
+    audio
+      .play()
+      .catch((error) => {
+        console.warn("Cannot autoplay server TTS:", error);
+        if (activeServerAudio === audio) {
+          activeServerAudio = null;
+        }
+        if (serverSegmentQueue.length) {
+          const next = serverSegmentQueue.shift();
+          if (!playServerAudioSource(next)) {
+            currentServerSegment = null;
+            refreshVoiceStatus();
+          }
+        } else {
+          currentServerSegment = null;
+          refreshVoiceStatus();
+        }
+      });
+    return true;
+  } catch (error) {
+    console.warn("Cannot play server TTS:", error);
+    return false;
+  }
+};
+
+const playServerSegments = (segments) => {
+  if (!ttsEnabled || !canPlayAudioElement) return false;
+  const playable = (segments || []).filter((segment) => segment && segment.audio);
+  if (!playable.length) return false;
+  stopServerAudio();
+  serverSegmentQueue = playable.slice(1);
+  return playServerAudioSource(playable[0]);
+};
+
+const playLatestServerAudio = () => {
+  if (!sessionState.lastServerTts || !ttsEnabled) return false;
+  const segments = sessionState.lastServerTts.segments || [];
+  if (Array.isArray(segments) && segments.length) {
+    if (playServerSegments(segments)) {
+      return true;
+    }
+  }
+  if (sessionState.lastServerTts.audio) {
+    return playServerSegments([
+      {
+        audio: sessionState.lastServerTts.audio,
+        mimeType: sessionState.lastServerTts.mimeType,
+        speaker: "AI",
+        text: sessionState.lastServerTts.text || "",
+      },
+    ]);
+  }
+  return false;
+};
+
+const ensureRecognition = () => {
+  if (!hasSttSupport) return null;
+  if (recognitionInstance) return recognitionInstance;
+  const instance = new SpeechRecognition();
+  instance.lang = "vi-VN";
+  instance.interimResults = true;
+  instance.maxAlternatives = 1;
+  instance.continuous = true;
+
+  instance.addEventListener("start", () => {
+    sttListening = true;
+    setButtonPressed(sttToggle, true);
+    refreshVoiceStatus();
+    updateSttButtonLabel();
+  });
+
+  instance.addEventListener("end", () => {
+    sttListening = false;
+    setButtonPressed(sttToggle, false);
+    if (sttShouldContinue) {
+      setTimeout(() => {
+        try {
+          instance.start();
+        } catch (error) {
+          console.warn("Speech recognition restart failed:", error);
+          sttShouldContinue = false;
+          refreshVoiceStatus();
+        }
+      }, 300);
+    } else {
+      refreshVoiceStatus();
+    }
+    updateSttButtonLabel();
+  });
+
+  instance.addEventListener("result", (event) => {
+    let finalTranscript = "";
+    let interimTranscript = "";
+    for (let i = event.resultIndex; i < event.results.length; i += 1) {
+      const result = event.results[i];
+      if (result.isFinal) {
+        finalTranscript += result[0].transcript;
+      } else {
+        interimTranscript += result[0].transcript;
+      }
+    }
+    if (interimTranscript) {
+      updateVoiceStatus(`Dang nghe: ${interimTranscript.trim()}`, "active");
+    }
+    if (finalTranscript) {
+      appendSpeechTextToInput(finalTranscript);
+      refreshVoiceStatus();
+    }
+  });
+
+  instance.addEventListener("error", (event) => {
+    console.warn("Speech recognition error:", event.error || event.message);
+    updateVoiceStatus("Khong the thu am. Kiem tra micro.", "error");
+    sttShouldContinue = false;
+    sttListening = false;
+    setButtonPressed(sttToggle, false);
+    updateSttButtonLabel();
+  });
+
+  recognitionInstance = instance;
+  return recognitionInstance;
+};
+
+const toggleSpeechRecognition = () => {
+  if (!hasSttSupport) {
+    updateVoiceStatus("Trinh duyet khong ho tro nhan giong.", "error");
+    return;
+  }
+  const instance = ensureRecognition();
+  if (!instance) return;
+  try {
+    if (sttShouldContinue || sttListening) {
+      sttShouldContinue = false;
+      updateSttButtonLabel();
+      instance.stop();
+      return;
+    }
+    sttShouldContinue = true;
+    updateSttButtonLabel();
+    instance.start();
+  } catch (error) {
+    console.warn("Unable to toggle speech recognition:", error);
+    updateVoiceStatus("Khong the bat micro.", "error");
+    sttShouldContinue = false;
+    updateSttButtonLabel();
+  }
+};
+
+const speakText = (text) => {
+  if (!hasLocalTtsSupport || !ttsEnabled) return;
+  const message = (text || "").trim();
+  if (!message) return;
+  stopServerAudio();
+  try {
+    window.speechSynthesis.cancel();
+    const utterance = new window.SpeechSynthesisUtterance(message);
+    utterance.lang = "vi-VN";
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    window.speechSynthesis.speak(utterance);
+  } catch (error) {
+    console.warn("Speech synthesis error:", error);
+    updateVoiceStatus("Khong the doc phan hoi.", "error");
+  }
+};
+
+const announceLatestAiReply = (state, options = {}) => {
+  if (!state) return;
+  const { preferServerTts = true } = options;
+  if (preferServerTts && playLatestServerAudio()) {
+    return;
+  }
+  const serverSegments = sessionState.lastServerTts?.segments || [];
+  const derivedSegmentText = serverSegments
+    .map((segment) => (segment.text ? `${segment.speaker}: ${segment.text}` : ""))
+    .filter(Boolean)
+    .join(" ");
+  const serverText = sessionState.lastServerTts?.text || derivedSegmentText;
+  if (serverText) {
+    speakText(serverText);
+    return;
+  }
+  const history = Array.isArray(state?.dialogue_history) ? state.dialogue_history : [];
+  let candidate = null;
+  for (let i = history.length - 1; i >= 0; i -= 1) {
+    const entry = history[i];
+    const content = entry?.content || entry?.text || entry?.message || "";
+    if (!content) continue;
+    const speaker = entry?.speaker || entry?.persona || entry?.role || "";
+    if (determineRole(speaker) === "ai") {
+      candidate = content;
+      break;
+    }
+  }
+  if (!candidate && state?.ai_reply) {
+    candidate = state.ai_reply;
+  }
+  if (candidate) {
+    speakText(candidate);
+  }
+};
+
+const initVoiceControls = () => {
+  refreshVoiceStatus();
+  if (sttToggle) {
+    setButtonPressed(sttToggle, false);
+    updateSttButtonLabel();
+    if (!hasSttSupport) {
+      sttToggle.disabled = true;
+      sttToggle.title = "Trinh duyet khong ho tro nhan giong.";
+    }
+    sttToggle.addEventListener("click", (event) => {
+      event.preventDefault();
+      toggleSpeechRecognition();
+    });
+  }
+  if (ttsToggle) {
+    setButtonPressed(ttsToggle, false);
+    if (!hasAnyTtsSupport) {
+      ttsToggle.disabled = true;
+      ttsToggle.title = "Trinh duyet khong ho tro phat am thanh.";
+    }
+    ttsToggle.addEventListener("click", (event) => {
+      event.preventDefault();
+      if (!hasAnyTtsSupport) {
+        updateVoiceStatus("Trinh duyet khong phat duoc phan hoi.", "error");
+        return;
+      }
+      ttsEnabled = !ttsEnabled;
+      setButtonPressed(ttsToggle, ttsEnabled);
+      if (!ttsEnabled) {
+        stopServerAudio();
+        if (hasLocalTtsSupport && window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+        }
+      }
+      refreshVoiceStatus();
+      if (ttsEnabled && sessionState?.state) {
+        announceLatestAiReply(sessionState.state);
+      }
+    });
+  }
 };
 
 const appendMessage = (text, role = "ai", speakerLabel) => {
@@ -224,7 +641,8 @@ const updateSummaryPanels = (state) => {
   }
 };
 
-const renderState = (state) => {
+const renderState = (state, options = {}) => {
+  const { speakLatestAi = false, preferServerTts = true } = options;
   if (!chatHistory) return;
   chatHistory.innerHTML = "";
 
@@ -248,6 +666,9 @@ const renderState = (state) => {
 
   updateSummaryPanels(state);
   scrollChat();
+  if (speakLatestAi) {
+    announceLatestAiReply(state, { preferServerTts });
+  }
 };
 
 const bootstrapSession = async () => {
@@ -281,10 +702,11 @@ const bootstrapSession = async () => {
   sessionState.caseId = sessionPayload.case_id || sessionState.caseId;
   sessionState.state = sessionPayload.state;
   sessionState.ownerRecorded = false;
+  storeServerTts(sessionPayload);
   persistSession(sessionPayload);
   updateUrlWithSession();
   ensureSessionOwnerSaved(sessionState.sessionId);
-  renderState(sessionPayload.state);
+  renderState(sessionPayload.state, { speakLatestAi: ttsEnabled, preferServerTts: true });
 };
 
 chatForm?.addEventListener("submit", async (event) => {
@@ -304,20 +726,22 @@ chatForm?.addEventListener("submit", async (event) => {
   try {
     if (!sessionState.sessionId) {
       const sessionPayload = await createSession(sessionState.caseId, value);
-          sessionState.sessionId = sessionPayload.session_id;
-          sessionState.caseId = sessionPayload.case_id || sessionState.caseId;
-          sessionState.state = sessionPayload.state;
-          sessionState.ownerRecorded = false;
-          persistSession(sessionPayload);
-          updateUrlWithSession();
-          ensureSessionOwnerSaved(sessionState.sessionId);
-        } else {
+      sessionState.sessionId = sessionPayload.session_id;
+      sessionState.caseId = sessionPayload.case_id || sessionState.caseId;
+      sessionState.state = sessionPayload.state;
+      sessionState.ownerRecorded = false;
+      storeServerTts(sessionPayload);
+      persistSession(sessionPayload);
+      updateUrlWithSession();
+      ensureSessionOwnerSaved(sessionState.sessionId);
+    } else {
       const turn = await sendTurn(sessionState.sessionId, value);
       sessionState.caseId = turn.case_id || sessionState.caseId;
       sessionState.state = turn.state;
+      storeServerTts(turn);
       persistSession(turn);
     }
-    renderState(sessionState.state);
+    renderState(sessionState.state, { speakLatestAi: ttsEnabled, preferServerTts: true });
   } catch (error) {
     console.error(error);
     appendMessage("Không thể gửi tin nhắn. Vui lòng thử lại sau.", "ai");
@@ -345,14 +769,15 @@ clearBtn?.addEventListener("click", async () => {
   appendMessage("Đang làm mới session...", "ai");
   try {
     const sessionPayload = await createSession(sessionState.caseId, "Bắt đầu nhiệm vụ.");
-        sessionState.sessionId = sessionPayload.session_id;
-        sessionState.caseId = sessionPayload.case_id || sessionState.caseId;
-        sessionState.state = sessionPayload.state;
-        sessionState.ownerRecorded = false;
-        persistSession(sessionPayload);
-        updateUrlWithSession();
-        ensureSessionOwnerSaved(sessionState.sessionId);
-        renderState(sessionPayload.state);
+    sessionState.sessionId = sessionPayload.session_id;
+    sessionState.caseId = sessionPayload.case_id || sessionState.caseId;
+    sessionState.state = sessionPayload.state;
+    sessionState.ownerRecorded = false;
+    storeServerTts(sessionPayload);
+    persistSession(sessionPayload);
+    updateUrlWithSession();
+    ensureSessionOwnerSaved(sessionState.sessionId);
+    renderState(sessionPayload.state, { speakLatestAi: ttsEnabled, preferServerTts: true });
   } catch (error) {
     console.error(error);
     chatHistory.innerHTML = "";
@@ -361,6 +786,7 @@ clearBtn?.addEventListener("click", async () => {
   }
 });
 
+initVoiceControls();
 document.addEventListener("DOMContentLoaded", bootstrapSession);
 const markSessionOwner = async (sessionId) => {
   if (!sessionId || recordedSessions.has(sessionId)) return;

@@ -684,6 +684,45 @@ select {
   }
 }
 
+.composer__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.btn--icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-inline: 12px;
+}
+
+.btn--icon .btn__icon {
+  width: 18px;
+  height: 18px;
+}
+
+.btn--icon[aria-pressed="true"] {
+  border-color: var(--primary-200);
+  background: var(--primary-50);
+  color: var(--primary-600);
+}
+
+.composer__status {
+  font-size: 0.75rem;
+  color: var(--slate-500);
+  min-width: 180px;
+}
+
+.composer__status[data-tone="active"] {
+  color: var(--primary-600);
+}
+
+.composer__status[data-tone="error"] {
+  color: #b91c1c;
+}
+
 .composer__note {
   margin: 0;
   font-size: 0.72rem;
