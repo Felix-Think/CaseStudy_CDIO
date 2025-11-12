@@ -18,9 +18,9 @@ class AuthService:
 
     def __init__(self) -> None:
         self.settings = get_settings()
-        self.collection = self._create_collection()
+        self.collection, self.session_collection = self._create_collections()
 
-    def _create_collection(self) -> Collection:
+    def _create_collections(self) -> tuple[Collection, Collection]:
         tls_kwargs: Dict[str, Any] = {}
         try:
             if "mongodb+srv://" in self.settings.mongo_uri:
@@ -33,7 +33,8 @@ class AuthService:
             serverSelectionTimeoutMS=self.settings.mongo_timeout_ms,
             **tls_kwargs,
         )
-        return client[self.settings.mongo_user_db]["member"]
+        db = client[self.settings.mongo_user_db]
+        return db["member"], db["SessionOwner"]
 
     @staticmethod
     def _hash_password(raw_password: str) -> str:
@@ -80,8 +81,20 @@ class AuthService:
     def append_session_owner(self, user_id: str, session_id: str) -> bool:
         if not ObjectId.is_valid(user_id):
             raise ValueError("Invalid user id.")
-        result = self.collection.update_one(
-            {"_id": ObjectId(user_id)},
-            {"$addToSet": {"session_owner": session_id}},
+        if not session_id or not session_id.strip():
+            raise ValueError("Invalid session id.")
+
+        now = datetime.now(timezone.utc)
+        result = self.session_collection.update_one(
+            {"user_id": ObjectId(user_id)},
+            {
+                "$setOnInsert": {
+                    "user_id": ObjectId(user_id),
+                    "created_at": now,
+                },
+                "$addToSet": {"session_ids": session_id},
+                "$set": {"updated_at": now},
+            },
+            upsert=True,
         )
-        return result.matched_count > 0
+        return result.matched_count > 0 or result.upserted_id is not None
