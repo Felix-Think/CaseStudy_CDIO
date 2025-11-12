@@ -5,6 +5,7 @@ import hashlib
 from typing import Any, Dict, Optional
 
 import certifi
+from bson.objectid import ObjectId
 from pymongo import MongoClient
 from pymongo.collection import Collection
 
@@ -75,3 +76,12 @@ class AuthService:
             raise ValueError("Email hoặc password chưa đúng.")
 
         return document
+
+    def append_session_owner(self, user_id: str, session_id: str) -> bool:
+        if not ObjectId.is_valid(user_id):
+            raise ValueError("Invalid user id.")
+        result = self.collection.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$addToSet": {"session_owner": session_id}},
+        )
+        return result.matched_count > 0

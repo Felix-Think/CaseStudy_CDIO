@@ -1,9 +1,14 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, HTTPException, Request, Response, status
 from pymongo.errors import PyMongoError
 
-from casestudy.app.schemas.auth import AuthResponse, LoginRequest, RegisterRequest
+from casestudy.app.schemas.auth import (
+    AuthResponse,
+    LoginRequest,
+    RegisterRequest,
+    SessionOwnerRequest,
+)
 from casestudy.app.services.auth_service import AuthService
 
 
@@ -53,3 +58,29 @@ async def login_member(payload: LoginRequest, response: Response) -> AuthRespons
         redirect="/user",
         user_id=user_id,
     )
+
+
+@router.post("/session-owner")
+async def session_owner(
+    payload: SessionOwnerRequest,
+    request: Request,
+) -> dict[str, str]:
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+
+    service = AuthService()
+    try:
+        updated = service.append_session_owner(user_id, payload.session_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except PyMongoError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Không thể kết nối tới MongoDB. Vui lòng thử lại sau.",
+        ) from exc
+
+    if not updated:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User không tồn tại.")
+
+    return {"status": "ok"}

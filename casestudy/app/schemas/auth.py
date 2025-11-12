@@ -22,3 +22,7 @@ class AuthResponse(BaseModel):
     message: str
     redirect: str = "/nhap-case"
     user_id: str | None = None
+
+
+class SessionOwnerRequest(BaseModel):
+    session_id: constr(strip_whitespace=True, min_length=6)

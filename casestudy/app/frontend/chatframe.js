@@ -1,5 +1,7 @@
 const AGENT_API_BASE = window.__CASE_AGENT_BASE || "http://127.0.0.1:9000";
 const STORAGE_PREFIX = "case-session:";
+const SESSION_OWNER_ENDPOINT = "/api/auth/session-owner";
+const recordedSessions = new Set();
 
 const chatHistory = document.getElementById("chat-history");
 const chatForm = document.getElementById("chat-form");
@@ -19,6 +21,7 @@ const sessionState = {
   caseId: params.get("case_id"),
   sessionId: params.get("session_id"),
   state: null,
+  ownerRecorded: false,
 };
 
 const storageKey = (sessionId) => `${STORAGE_PREFIX}${sessionId}`;
@@ -277,8 +280,10 @@ const bootstrapSession = async () => {
   sessionState.sessionId = sessionPayload.session_id;
   sessionState.caseId = sessionPayload.case_id || sessionState.caseId;
   sessionState.state = sessionPayload.state;
+  sessionState.ownerRecorded = false;
   persistSession(sessionPayload);
   updateUrlWithSession();
+  ensureSessionOwnerSaved(sessionState.sessionId);
   renderState(sessionPayload.state);
 };
 
@@ -299,12 +304,14 @@ chatForm?.addEventListener("submit", async (event) => {
   try {
     if (!sessionState.sessionId) {
       const sessionPayload = await createSession(sessionState.caseId, value);
-      sessionState.sessionId = sessionPayload.session_id;
-      sessionState.caseId = sessionPayload.case_id || sessionState.caseId;
-      sessionState.state = sessionPayload.state;
-      persistSession(sessionPayload);
-      updateUrlWithSession();
-    } else {
+          sessionState.sessionId = sessionPayload.session_id;
+          sessionState.caseId = sessionPayload.case_id || sessionState.caseId;
+          sessionState.state = sessionPayload.state;
+          sessionState.ownerRecorded = false;
+          persistSession(sessionPayload);
+          updateUrlWithSession();
+          ensureSessionOwnerSaved(sessionState.sessionId);
+        } else {
       const turn = await sendTurn(sessionState.sessionId, value);
       sessionState.caseId = turn.case_id || sessionState.caseId;
       sessionState.state = turn.state;
@@ -338,12 +345,14 @@ clearBtn?.addEventListener("click", async () => {
   appendMessage("Đang làm mới session...", "ai");
   try {
     const sessionPayload = await createSession(sessionState.caseId, "Bắt đầu nhiệm vụ.");
-    sessionState.sessionId = sessionPayload.session_id;
-    sessionState.caseId = sessionPayload.case_id || sessionState.caseId;
-    sessionState.state = sessionPayload.state;
-    persistSession(sessionPayload);
-    updateUrlWithSession();
-    renderState(sessionPayload.state);
+        sessionState.sessionId = sessionPayload.session_id;
+        sessionState.caseId = sessionPayload.case_id || sessionState.caseId;
+        sessionState.state = sessionPayload.state;
+        sessionState.ownerRecorded = false;
+        persistSession(sessionPayload);
+        updateUrlWithSession();
+        ensureSessionOwnerSaved(sessionState.sessionId);
+        renderState(sessionPayload.state);
   } catch (error) {
     console.error(error);
     chatHistory.innerHTML = "";
@@ -353,3 +362,30 @@ clearBtn?.addEventListener("click", async () => {
 });
 
 document.addEventListener("DOMContentLoaded", bootstrapSession);
+const markSessionOwner = async (sessionId) => {
+  if (!sessionId || recordedSessions.has(sessionId)) return;
+  recordedSessions.add(sessionId);
+  try {
+    const response = await fetch(SESSION_OWNER_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: sessionId }),
+    });
+    if (!response.ok) {
+      recordedSessions.delete(sessionId);
+      throw new Error("Không thể cập nhật session owner.");
+    }
+  } catch (error) {
+    recordedSessions.delete(sessionId);
+    console.warn("Không thể lưu session owner:", error);
+  }
+};
+
+const ensureSessionOwnerSaved = (sessionId) => {
+  if (!sessionId || sessionState.ownerRecorded) return;
+  markSessionOwner(sessionId).then(() => {
+    if (sessionId === sessionState.sessionId) {
+      sessionState.ownerRecorded = true;
+    }
+  });
+};
