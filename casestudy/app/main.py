@@ -48,3 +48,12 @@ async def serve_case_list() -> FileResponse:
     return FileResponse(case_list_path)
 
 app.include_router(api_router, prefix="/api")
+
+@app.get("/login", response_class=FileResponse)
+async def serve_case_list() -> FileResponse:
+    login_path = FRONTEND_DIR / "login.html"
+    if not login_path.exists():
+        raise HTTPException(status_code=404, detail="login.html not found.")
+    return FileResponse(login_path)
+
+app.include_router(api_router, prefix="/api")
