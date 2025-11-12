@@ -70,14 +70,6 @@ async def serve_manage_case() -> FileResponse:
         raise HTTPException(status_code=404, detail="quan-ly-case.html not found.")
     return FileResponse(manage_path)
 
-
-@app.get("/quan-ly-kho", response_class=FileResponse)
-async def serve_manage_inventory() -> FileResponse:
-    warehouse_path = FRONTEND_DIR / "quan-ly-kho.html"
-    if not warehouse_path.exists():
-        raise HTTPException(status_code=404, detail="quan-ly-kho.html not found.")
-    return FileResponse(warehouse_path)
-
 app.include_router(api_router, prefix="/api")
 
 @app.get("/login", response_class=FileResponse)
