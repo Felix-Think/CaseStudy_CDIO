@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -51,3 +52,30 @@ class AgentTurnResponse(BaseModel):
     session_id: str
     case_id: str
     state: Dict[str, Any]
+
+
+class AgentTurnLog(BaseModel):
+    turn_index: int = Field(..., description="Thứ tự lượt trong session.")
+    user_action: Optional[str] = Field(
+        default=None, description="Hành động người dùng ở lượt này."
+    )
+    ai_reply: Optional[str] = Field(
+        default=None, description="Phản hồi agent sau khi xử lý lượt."
+    )
+    current_event: Optional[str] = Field(
+        default=None, description="Sự kiện đang active khi kết thúc lượt."
+    )
+    created_at: datetime = Field(
+        ..., description="Thời điểm ghi nhận lượt (UTC)."
+    )
+    state: Dict[str, Any] = Field(
+        ..., description="Snapshot đầy đủ của RuntimeState sau lượt."
+    )
+
+
+class AgentSessionHistoryResponse(BaseModel):
+    session_id: str
+    case_id: str
+    turns: List[AgentTurnLog] = Field(
+        default_factory=list, description="Danh sách log từng lượt."
+    )

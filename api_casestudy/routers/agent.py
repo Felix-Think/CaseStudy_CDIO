@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from api_casestudy.schemas import (
     AgentSessionCreateRequest,
     AgentSessionCreateResponse,
+    AgentSessionHistoryResponse,
     AgentTurnRequest,
     AgentTurnResponse,
 )
@@ -71,3 +72,19 @@ async def end_session_endpoint(
     service: AgentService = Depends(get_agent_service),
 ) -> None:
     service.end_session(session_id)
+
+
+@router.get(
+    "/sessions/{session_id}/history",
+    response_model=AgentSessionHistoryResponse,
+)
+async def get_session_history_endpoint(
+    session_id: str,
+    service: AgentService = Depends(get_agent_service),
+) -> AgentSessionHistoryResponse:
+    try:
+        return service.get_session_history(session_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc

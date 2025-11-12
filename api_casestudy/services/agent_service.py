@@ -11,9 +11,12 @@ from casestudy.utils import semantic_extract as semantic_utils
 from api_casestudy.schemas import (
     AgentSessionCreateRequest,
     AgentSessionCreateResponse,
+    AgentSessionHistoryResponse,
+    AgentTurnLog,
     AgentTurnRequest,
     AgentTurnResponse,
 )
+from api_casestudy.services.state_repository import ConversationStateRepository
 
 
 def _normalize_runtime_state(result) -> RuntimeState:
@@ -77,10 +80,13 @@ class AgentService:
     Quản lý vòng đời agent sessions, wrap LangGraph runner.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, state_repo: Optional[ConversationStateRepository] = None) -> None:
         self._sessions: Dict[str, AgentSession] = {}
+        self._state_repo = state_repo or ConversationStateRepository()
 
     def create_session(self, payload: AgentSessionCreateRequest) -> AgentSessionCreateResponse:
+        session_id = uuid.uuid4().hex
+
         try:
             logic_memory = LogicMemory.load(payload.case_id)
         except FileNotFoundError as exc:
@@ -113,6 +119,7 @@ class AgentService:
             initial_config["start_event"] = payload.start_event
 
         state_store.save(state)
+        self._state_repo.save_state(session_id, payload.case_id, state)
         try:
             result_state = _normalize_runtime_state(
                 graph.invoke(state, config=initial_config)
@@ -120,8 +127,15 @@ class AgentService:
         except Exception as exc:  # pragma: no cover - fallback
             raise RuntimeError("Không thể khởi tạo agent session.") from exc
         state_store.save(result_state)
+        self._state_repo.save_state(session_id, payload.case_id, result_state)
+        self._state_repo.append_turn(
+            session_id=session_id,
+            case_id=payload.case_id,
+            user_action=initial_user_action,
+            state=result_state,
+            metadata={"phase": "initial_bootstrap"},
+        )
 
-        session_id = uuid.uuid4().hex
         session = AgentSession(
             session_id=session_id,
             case_id=payload.case_id,
@@ -145,6 +159,13 @@ class AgentService:
             config["start_event"] = payload.start_event
 
         state = session.run_turn(user_action=payload.user_input, config=config)
+        self._state_repo.save_state(session.session_id, session.case_id, state)
+        self._state_repo.append_turn(
+            session_id=session.session_id,
+            case_id=session.case_id,
+            user_action=payload.user_input,
+            state=state,
+        )
         return AgentTurnResponse(
             session_id=session.session_id,
             case_id=session.case_id,
@@ -153,3 +174,20 @@ class AgentService:
 
     def end_session(self, session_id: str) -> None:
         self._sessions.pop(session_id, None)
+
+    def load_state(self, session_id: str) -> RuntimeState:
+        state = self._state_repo.load_state(session_id)
+        if state is None:
+            raise KeyError(f"Session '{session_id}' không tồn tại trong state store.")
+        return state
+
+    def get_session_history(self, session_id: str) -> AgentSessionHistoryResponse:
+        metadata = self._state_repo.get_state_metadata(session_id)
+        if metadata is None:
+            raise KeyError(f"Session '{session_id}' không tồn tại.")
+        turn_logs = self._state_repo.list_turns(session_id)
+        return AgentSessionHistoryResponse(
+            session_id=session_id,
+            case_id=metadata["case_id"],
+            turns=[AgentTurnLog(**turn) for turn in turn_logs],
+        )
