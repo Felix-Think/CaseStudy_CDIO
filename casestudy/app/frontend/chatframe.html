@@ -41,6 +41,12 @@
             <button id="clear-history" class="btn btn--ghost" type="button">Xóa lịch sử</button>
           </header>
 
+          <article class="card info-card" id="scene-card">
+            <span class="eyebrow eyebrow--primary">Scene Summary</span>
+            <h3 class="info-card__title" id="scene-title">Hiện trường</h3>
+            <p class="info-card__body" id="scene-body">Chưa có tóm tắt hiện trường.</p>
+          </article>
+
           <div id="chat-history" class="chat-scroll chat-scroll--window">
           </div>
 
@@ -102,6 +108,8 @@
     const quickChips = document.querySelectorAll("[data-quick]");
     const aiReplyTitle = document.getElementById("ai-reply-title");
     const aiReplyText = document.getElementById("ai-reply-text");
+    const sceneTitle = document.getElementById("scene-title");
+    const sceneBody = document.getElementById("scene-body");
     const successTitle = document.getElementById("success-title");
     const successList = document.getElementById("success-list");
     const successEmpty = document.getElementById("success-empty");
@@ -255,6 +263,16 @@
           ? `Success criteria • ${state.current_event}`
           : "Success criteria";
       }
+      if (sceneTitle) {
+        sceneTitle.textContent = state?.current_event
+          ? `Hiện trường • ${state.current_event}`
+          : "Hiện trường";
+      }
+      if (sceneBody) {
+        const summary = (state?.scene_summary || "").trim();
+        sceneBody.textContent = summary || "Chưa có tóm tắt hiện trường.";
+      }
+
       if (!successList || !successEmpty) return;
 
       successList.innerHTML = "";
@@ -266,12 +284,34 @@
           ? state.event_summary[remainingKey]
           : [];
 
-      if (remaining.length) {
+      const pickDescription = (item) => {
+        if (!item) return "";
+        if (typeof item === "string") {
+          return item;
+        }
+        if (typeof item === "object") {
+          return (
+            item.description ||
+            item.criterion ||
+            item.title ||
+            (Array.isArray(item.levels)
+              ? item.levels.find((level) => level && level.descriptor)?.descriptor || ""
+              : "")
+          ).trim();
+        }
+        return "";
+      };
+
+      const readableRemaining = remaining
+        .map((item) => pickDescription(item))
+        .filter((text) => text.length);
+
+      if (readableRemaining.length) {
         successEmpty.classList.add("hidden");
         successList.classList.remove("hidden");
-        remaining.forEach((item) => {
+        readableRemaining.forEach((text) => {
           const li = document.createElement("li");
-          li.textContent = item;
+          li.textContent = text;
           successList.appendChild(li);
         });
       } else {
@@ -299,10 +339,6 @@
         const role = determineRole(speaker);
         appendMessage(content, role, normalizeSpeaker(speaker, role));
       });
-
-      if (state?.scene_summary){
-        appendMessage(state.scene_summary, "ai", "Scene Summary");
-      }
       if (state?.system_notice) {
         appendMessage(state.system_notice, "ai", "System");
       }
