@@ -19,6 +19,14 @@ class CaseListResponse(BaseModel):
     source: str
 
 
+class CaseDetailResponse(BaseModel):
+    case_id: str
+    context: Optional[Dict[str, Any]] = None
+    skeleton: Optional[Dict[str, Any]] = None
+    personas: Optional[Dict[str, Any]] = None
+    source: str
+
+
 class CaseCreatePayload(BaseModel):
     """
     Payload nhận từ frontend để tạo/cập nhật case.

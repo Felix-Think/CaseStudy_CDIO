@@ -9,6 +9,7 @@ from casestudy.app.dependencies.cases import (
 from casestudy.app.schemas.case import (
     CaseCreatePayload,
     CaseCreateResponse,
+    CaseDetailResponse,
     CaseListResponse,
     CaseDraftRequest,
     CaseDraftResponse,
@@ -78,4 +79,55 @@ async def draft_case_endpoint(
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
+
+# ==============================
+# Endpoint: GET /cases/{case_id}
+# ==============================
+@router.get(
+    "/{case_id}",
+    response_model=CaseDetailResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_case_detail_endpoint(
+    case_id: str,
+    service: CaseService = Depends(get_case_service),
+) -> CaseDetailResponse:
+    """
+    Trả về đầy đủ context/personas/skeleton theo case_id.
+    """
+    try:
+        return service.get_case_detail(case_id)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
+    except LookupError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
+
+# ==============================
+# Endpoint: DELETE /cases/{case_id}
+# ==============================
+@router.delete(
+    "/{case_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_case_endpoint(
+    case_id: str,
+    service: CaseService = Depends(get_case_service),
+) -> None:
+    """
+    Xóa case theo case_id khỏi MongoDB (và dọn local nếu có).
+    """
+    try:
+        service.delete_case(case_id)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
+    except LookupError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
         ) from exc

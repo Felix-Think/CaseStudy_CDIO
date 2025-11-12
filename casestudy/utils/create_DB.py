@@ -32,3 +32,8 @@ if __name__ == "__main__":
     db = create_database(DB_NAME=DB_NAME)
     add_virtual_data(db)
     print(db.client.list_database_names())
+    db1 = MongoClient("mongodb+srv://nvt120205:thang1202@thangnguyen.8aiscbh.mongodb.net/",
+        tls=True,
+        tlsCAFile=certifi.where())["User"]
+    collections = db1.list_collection_names()
+    print(collections)

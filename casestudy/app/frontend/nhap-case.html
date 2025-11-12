@@ -767,6 +767,11 @@
       const saveCaseButton = document.querySelector('[data-save-case]');
       const successCriterionTemplate = document.getElementById('success-criterion-template');
       const SUCCESS_LEVEL_SCORES = [5, 4, 3, 2, 1];
+      const CASE_EDIT_STORAGE_PREFIX = 'case-edit:';
+      const CASE_EDIT_QUERY_PARAM = 'edit-case';
+      const DEFAULT_SAVE_LABEL = 'Lưu case';
+      const UPDATE_SAVE_LABEL = 'Update case';
+      let editingCaseId = null;
       let saveButtonUpdateId = null;
 
       const controllers = {
@@ -784,6 +789,8 @@
       activateTab('skeleton');
       syncCaseIds();
       scheduleSaveButtonStateUpdate();
+      updateSaveCaseButtonLabel();
+      hydrateCaseEditPayload();
 
       if (saveCaseButton) {
         saveCaseButton.addEventListener('click', handleCaseSave);
@@ -2438,6 +2445,20 @@
         return value;
       }
 
+      function updateSaveCaseButtonLabel() {
+        if (!saveCaseButton) {
+          return;
+        }
+        const nextLabel = editingCaseId ? UPDATE_SAVE_LABEL : DEFAULT_SAVE_LABEL;
+        if (saveCaseButton.dataset.originalText != null) {
+          saveCaseButton.dataset.originalText = nextLabel;
+          return;
+        }
+        if (saveCaseButton.textContent !== nextLabel) {
+          saveCaseButton.textContent = nextLabel;
+        }
+      }
+
       function scheduleSaveButtonStateUpdate() {
         if (saveButtonUpdateId != null) {
           cancelAnimationFrame(saveButtonUpdateId);
@@ -2535,6 +2556,152 @@
           resolvedCaseId,
           isComplete,
           issues,
+        };
+      }
+
+      async function hydrateCaseEditPayload() {
+        const params = new URLSearchParams(window.location.search);
+        const editCaseId = params.get(CASE_EDIT_QUERY_PARAM);
+        if (!editCaseId) {
+          editingCaseId = null;
+          updateSaveCaseButtonLabel();
+          return;
+        }
+
+        editingCaseId = editCaseId;
+        updateSaveCaseButtonLabel();
+
+        const storedPayload = consumeStoredCaseEditPayload(editCaseId);
+        if (storedPayload) {
+          applyCaseDetailPayload(storedPayload, { caseId: editCaseId, label: 'session' });
+          return;
+        }
+
+        try {
+          const detail = await fetchCaseDetailFromApi(editCaseId);
+          applyCaseDetailPayload(detail, {
+            caseId: editCaseId,
+            label: detail?.source || 'api',
+          });
+        } catch (error) {
+          console.error(error);
+          showNotification(error.message || 'Không thể tải dữ liệu case cần cập nhật.', 'error');
+        }
+      }
+
+      function consumeStoredCaseEditPayload(caseId) {
+        const storageKey = `${CASE_EDIT_STORAGE_PREFIX}${caseId}`;
+        try {
+          const raw = sessionStorage.getItem(storageKey);
+          if (!raw) {
+            return null;
+          }
+          sessionStorage.removeItem(storageKey);
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object') {
+            if (parsed.payload && typeof parsed.payload === 'object') {
+              return parsed.payload;
+            }
+            return parsed;
+          }
+        } catch (error) {
+          console.warn('Không thể đọc payload cập nhật case từ sessionStorage:', error);
+        }
+        return null;
+      }
+
+      async function fetchCaseDetailFromApi(caseId) {
+        const response = await fetch(`/api/cases/${encodeURIComponent(caseId)}`);
+        if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error(`Không tìm thấy case '${caseId}'.`);
+          }
+          throw new Error(`Không thể tải dữ liệu case (HTTP ${response.status}).`);
+        }
+        return response.json();
+      }
+
+      function applyCaseDetailPayload(detail, options = {}) {
+        if (!detail || typeof detail !== 'object') {
+          return;
+        }
+
+        clearSectionImport('skeleton', { silent: true });
+        clearSectionImport('context', { silent: true });
+        clearSectionImport('personas', { silent: true });
+
+        const caseId = detail.case_id || options.caseId || '';
+        const label = options.label || detail.source || (caseId ? `case:${caseId}` : 'case');
+
+        if (detail.skeleton && typeof detail.skeleton === 'object') {
+          controllers.skeleton.write(detail.skeleton);
+          importState.skeleton = {
+            data: detail.skeleton,
+            fileName: label,
+            caseId,
+          };
+        } else {
+          importState.skeleton = null;
+        }
+
+        if (detail.context && typeof detail.context === 'object') {
+          controllers.context.write(detail.context);
+          importState.context = {
+            data: detail.context,
+            fileName: label,
+            caseId,
+          };
+        } else {
+          importState.context = null;
+        }
+
+        const personasPayload = normalizePersonasDetailPayload(detail.personas, caseId);
+        if (personasPayload) {
+          controllers.personas.write(personasPayload);
+          importState.personas = {
+            data: personasPayload,
+            fileName: label,
+            caseId: personasPayload.case_id || caseId,
+          };
+        } else {
+          importState.personas = null;
+        }
+
+        const syncedId = syncCaseIds(caseId);
+        updateImportStatus('skeleton');
+        updateImportStatus('context');
+        updateImportStatus('personas');
+        activateTab('skeleton');
+        scheduleSaveButtonStateUpdate();
+
+        const infoMessage = syncedId || caseId ? `Đang chỉnh sửa case '${syncedId || caseId}'.` : 'Đã tải dữ liệu case.';
+        showNotification(infoMessage, 'info');
+      }
+
+      function normalizePersonasDetailPayload(raw, fallbackCaseId) {
+        if (!raw) {
+          return null;
+        }
+
+        let container = null;
+        if (Array.isArray(raw)) {
+          container = { personas: raw };
+        } else if (typeof raw === 'object') {
+          container = { ...raw };
+        }
+
+        if (!container) {
+          return null;
+        }
+
+        const personasList = Array.isArray(container.personas) ? container.personas : [];
+        const caseId = container.case_id || fallbackCaseId || '';
+
+        return {
+          ...container,
+          case_id: caseId,
+          personas: personasList,
+          count: container.count ?? personasList.length,
         };
       }
 

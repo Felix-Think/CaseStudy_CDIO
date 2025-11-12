@@ -1,0 +1,39 @@
+{
+  "case_id": "cuoc_hop_cham_soc_khach_hang_002",
+  "topic": "Cuộc họp căng thẳng về sản phẩm",
+  "initial_context": {
+    "scene": {
+      "time": "Buổi chiều",
+      "weather": "Lạnh",
+      "location": "Phòng họp công ty",
+      "noise_level": "Im lặng căng thẳng"
+    },
+    "index_event": {
+      "summary": "Cuộc họp để giải quyết khiếu nại sản phẩm",
+      "current_state": "Căng thẳng và lo âu",
+      "who_first_on_scene": "Chị Mai"
+    },
+    "available_resources": {
+      "tai-lieu-can-thiet": [
+        "Tài liệu sản phẩm",
+        "Báo cáo khách hàng",
+        "NOTE: Bao gồm thông tin sản phẩm và phản hồi từ khách hàng"
+      ]
+    },
+    "constraints": [
+      "Thời gian hạn chế để hoàn thành báo cáo"
+    ],
+    "policies_safety_legal": [
+      "Chính sách chất lượng sản phẩm",
+      "Chính sách chăm sóc khách hàng"
+    ],
+    "handover_target": "Bàn giao báo cáo và kế hoạch khắc phục cho giám đốc",
+    "success_end_state": "",
+    "available_resources_meta": {
+      "tai-lieu-can-thiet": {
+        "label": "Tài liệu cần thiết",
+        "note": "Bao gồm thông tin sản phẩm và phản hồi từ khách hàng"
+      }
+    }
+  }
+}
