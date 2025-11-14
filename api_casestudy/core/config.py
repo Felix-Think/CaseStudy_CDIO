@@ -21,6 +21,11 @@ class Settings(BaseSettings):
         alias="MONGO_TIMEOUT_MS",
         description="Mongo client timeout (ms).",
     )
+    state_db: str = Field(
+        default="case_state_store",
+        alias="STATE_DB",
+        description="Tên MongoDB database dùng để lưu runtime state/logs.",
+    )
 
     version: str = "1.0.0"
 
