@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import logging
 import uuid
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 from casestudy.agent import LogicMemory, RuntimeState
+from casestudy.agent.const import DEFAULT_MODEL_NAME
 from casestudy.agent.graph import CaseStudyGraphBuilder
 from casestudy.utils import semantic_extract as semantic_utils
 
@@ -19,6 +21,9 @@ from api_casestudy.schemas import (
 from api_casestudy.services.tts_engine import TTSEngine, TTSPayload
 from api_casestudy.services.voice_selector import VoiceSelector
 from api_casestudy.services.state_repository import ConversationStateRepository
+
+
+logger = logging.getLogger(__name__)
 
 
 def _normalize_runtime_state(result) -> RuntimeState:
@@ -139,6 +144,7 @@ def _format_dialogue_text(lines: list[DialogueLine]) -> Optional[str]:
 class AgentSession:
     session_id: str
     case_id: str
+    model_name: str
     graph: Any
     state: RuntimeState
     state_store: _InMemoryStateStore
@@ -183,6 +189,51 @@ class AgentService:
         self._tts_engine = TTSEngine.from_env()
         default_voice = self._tts_engine.voice if self._tts_engine else None
         self._voice_selector = VoiceSelector.from_env(default_voice=default_voice)
+        try:
+            self._state_repo: Optional[ConversationStateRepository] = (
+                state_repo or ConversationStateRepository()
+            )
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning("Không thể khởi tạo ConversationStateRepository: %s", exc, exc_info=True)
+            self._state_repo = None
+
+    @staticmethod
+    def _resolve_model_name(model_name: Optional[str]) -> str:
+        return model_name or DEFAULT_MODEL_NAME
+
+    def _compile_graph(
+        self,
+        *,
+        case_id: str,
+        model_name: str,
+        state_store: _InMemoryStateStore,
+    ):
+        _configure_semantic_module(case_id)
+        builder = CaseStudyGraphBuilder(case_id=case_id, model_name=model_name)
+        builder.state_store = state_store
+        return builder.build().compile()
+
+
+    def _persist_state(
+        self,
+        *,
+        session_id: str,
+        case_id: str,
+        state: RuntimeState,
+        user_action: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        if not self._state_repo:
+            return
+        self._state_repo.save_state(session_id, case_id, state)
+        if user_action is not None or metadata:
+            self._state_repo.append_turn(
+                session_id=session_id,
+                case_id=case_id,
+                user_action=user_action,
+                state=state,
+                metadata=metadata,
+            )
 
     def _tts_enabled(self) -> bool:
         return bool(self._tts_engine and getattr(self._tts_engine, "enabled", False))
@@ -217,10 +268,11 @@ class AgentService:
                 }
             )
         return primary_payload, segments, text_fallback
-        self._state_repo = state_repo or ConversationStateRepository()
+        
 
     def create_session(self, payload: AgentSessionCreateRequest) -> AgentSessionCreateResponse:
         session_id = uuid.uuid4().hex
+        model_name = self._resolve_model_name(payload.model_name)
 
         try:
             logic_memory = LogicMemory.load(payload.case_id)
@@ -229,15 +281,12 @@ class AgentService:
 
         start_event = payload.start_event or logic_memory.first_event or "CE1"
 
-        _configure_semantic_module(payload.case_id)
-
         state_store = _InMemoryStateStore()
-        builder = CaseStudyGraphBuilder(
+        graph = self._compile_graph(
             case_id=payload.case_id,
-            model_name=payload.model_name,
+            model_name=model_name,
+            state_store=state_store,
         )
-        builder.state_store = state_store
-        graph = builder.build().compile()
 
         initial_user_action = payload.user_action.strip() if payload.user_action else None
 
@@ -254,7 +303,11 @@ class AgentService:
             initial_config["start_event"] = payload.start_event
 
         state_store.save(state)
-        self._state_repo.save_state(session_id, payload.case_id, state)
+        self._persist_state(
+            session_id=session_id,
+            case_id=payload.case_id,
+            state=state,
+        )
         try:
             result_state = _normalize_runtime_state(
                 graph.invoke(state, config=initial_config)
@@ -262,18 +315,18 @@ class AgentService:
         except Exception as exc:  # pragma: no cover - fallback
             raise RuntimeError("Không thể khởi tạo agent session.") from exc
         state_store.save(result_state)
-        self._state_repo.save_state(session_id, payload.case_id, result_state)
-        self._state_repo.append_turn(
+        self._persist_state(
             session_id=session_id,
             case_id=payload.case_id,
-            user_action=initial_user_action,
             state=result_state,
+            user_action=initial_user_action,
             metadata={"phase": "initial_bootstrap"},
         )
 
         session = AgentSession(
             session_id=session_id,
             case_id=payload.case_id,
+            model_name=model_name,
             graph=graph,
             state=result_state,
             state_store=state_store,
@@ -304,12 +357,11 @@ class AgentService:
         dialogue_lines = _extract_dialogue_lines(state)
         tts_payload, tts_segments, tts_text = self._build_tts_segments(dialogue_lines)
         final_text = tts_text or state.ai_reply
-        self._state_repo.save_state(session.session_id, session.case_id, state)
-        self._state_repo.append_turn(
+        self._persist_state(
             session_id=session.session_id,
             case_id=session.case_id,
-            user_action=payload.user_input,
             state=state,
+            user_action=payload.user_input,
         )
         return AgentTurnResponse(
             session_id=session.session_id,
@@ -327,12 +379,16 @@ class AgentService:
         self._sessions.pop(session_id, None)
 
     def load_state(self, session_id: str) -> RuntimeState:
+        if not self._state_repo:
+            raise RuntimeError("State repository không khả dụng.")
         state = self._state_repo.load_state(session_id)
         if state is None:
             raise KeyError(f"Session '{session_id}' không tồn tại trong state store.")
         return state
 
     def get_session_history(self, session_id: str) -> AgentSessionHistoryResponse:
+        if not self._state_repo:
+            raise RuntimeError("State repository không khả dụng.")
         metadata = self._state_repo.get_state_metadata(session_id)
         if metadata is None:
             raise KeyError(f"Session '{session_id}' không tồn tại.")

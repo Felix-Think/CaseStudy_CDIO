@@ -23,7 +23,8 @@ router = APIRouter(prefix="/cases", tags=["cases"])
 # ==============================
 # Endpoint: GET /cases
 # ==============================
-@router.get("/", response_model=CaseListResponse)
+@router.get("", response_model=CaseListResponse)
+@router.get("/", response_model=CaseListResponse, include_in_schema=False)
 async def list_cases_endpoint(
     limit: int = Query(50, ge=1, le=200),
     service: CaseService = Depends(get_case_service),
@@ -37,9 +38,15 @@ async def list_cases_endpoint(
 # Endpoint: POST /cases
 # ==============================
 @router.post(
+    "",
+    response_model=CaseCreateResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+@router.post(
     "/",
     response_model=CaseCreateResponse,
     status_code=status.HTTP_201_CREATED,
+    include_in_schema=False,
 )
 async def create_case_endpoint(
     payload: CaseCreatePayload,

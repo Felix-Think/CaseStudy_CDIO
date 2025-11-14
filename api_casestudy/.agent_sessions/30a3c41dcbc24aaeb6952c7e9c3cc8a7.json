@@ -1,0 +1,228 @@
+{
+  "session_id": "30a3c41dcbc24aaeb6952c7e9c3cc8a7",
+  "case_id": "drowning_pool_001",
+  "model_name": "gpt-4o-mini",
+  "state": {
+    "case_id": "drowning_pool_001",
+    "current_event": "CE1",
+    "turn_count": 3,
+    "max_turns": 3,
+    "scene_summary": "Trong bối cảnh mô phỏng này, học viên đang ở một khu vực bể bơi, nơi có một nạn nhân (P1) đang có dấu hiệu đuối nước. Môi trường xung quanh có nguy cơ trơn trượt do nước, và có một số người bơi gần đó (P4) cùng với nhân viên cơ sở (P3) đang quan sát. Học viên cần nhanh chóng lấy lại bình tĩnh, thực hiện kiểm tra an toàn cho bản thân và hiện trường, đồng thời tiếp cận nạn nhân một cách an toàn và hiệu quả. Nếu học viên có thể huy động sự hỗ trợ từ nhân viên cơ sở và kiểm soát đám đông, điều này sẽ giúp giảm thiểu rủi ro cho nạn nhân và những người xung quanh. Hiện tại, học viên vẫn đang trong trạng thái sợ hãi và chưa thực hiện hành động nào để cải thiện tình hình.",
+    "active_personas": {
+      "P1": {
+        "id": "P1",
+        "name": "Nạn nhân",
+        "role": "Người bị đuối nước",
+        "emotion": "lo lắng",
+        "trust": 0.19999999999999996,
+        "profile": "Nạn nhân 25 tuổi, là người bơi nghiệp dư, đang trong tình trạng hoảng loạn và cần được cứu sống để ổn định hô hấp và tuần hoàn. Cảm xúc: hoảng loạn, mệt mỏi, hôn mê."
+      },
+      "P3": {
+        "id": "P3",
+        "name": "Nhân viên cơ sở",
+        "role": "Nhân viên cứu hộ hoặc quản lý hồ bơi",
+        "emotion": "lo lắng",
+        "trust": 0.19999999999999996,
+        "profile": null
+      },
+      "P4": {
+        "id": "P4",
+        "name": "Người bơi gần đó",
+        "role": "Nhân chứng / người hỗ trợ phụ",
+        "emotion": "lo lắng",
+        "trust": 0.19999999999999996,
+        "profile": "Người bơi 22 tuổi, là nhân chứng và hỗ trợ phụ, phản ứng nhanh khi thấy sự cố và muốn giúp đỡ nạn nhân theo hướng dẫn. Cảm xúc: bất ngờ, lo lắng, hợp tác."
+      }
+    },
+    "dialogue_history": [
+      {
+        "speaker": "user",
+        "content": "Bắt đầu nhiệm vụ."
+      },
+      {
+        "speaker": "Nạn nhân",
+        "content": "Giúp tôi! Tôi không thể thở!"
+      },
+      {
+        "speaker": "Nhân viên cơ sở",
+        "content": "Hãy giữ bình tĩnh! Tôi sẽ gọi hỗ trợ ngay lập tức!"
+      },
+      {
+        "speaker": "Người bơi gần đó",
+        "content": "Tôi có thể giúp gì không? Tôi sẵn sàng làm theo chỉ dẫn!"
+      },
+      {
+        "speaker": "user",
+        "content": "Tôi sợ hãi và rút lui"
+      },
+      {
+        "speaker": "Nạn nhân",
+        "content": "Tôi không thể giữ được nữa! Giúp tôi với!"
+      },
+      {
+        "speaker": "Nhân viên cơ sở",
+        "content": "Hãy giữ bình tĩnh! Tôi sẽ đưa phao cho bạn và gọi thêm người giúp!"
+      },
+      {
+        "speaker": "Người bơi gần đó",
+        "content": "Tôi có thể lấy phao hoặc gọi ai đó không?"
+      },
+      {
+        "speaker": "user",
+        "content": "Tôi không làm nỗi đâu, tôi không làm"
+      },
+      {
+        "speaker": "Nạn nhân",
+        "content": "Tôi không thể nổi nữa! Xin hãy giúp tôi!"
+      },
+      {
+        "speaker": "Nhân viên cơ sở",
+        "content": "Tôi đã gọi thêm người! Hãy giữ bình tĩnh, tôi sẽ ném phao cho bạn!"
+      },
+      {
+        "speaker": "Người bơi gần đó",
+        "content": "Tôi sẽ gọi người giúp ngay bây giờ!"
+      }
+    ],
+    "user_action": null,
+    "event_summary": {
+      "_last_scene_event": "CE1",
+      "_last_persona_dialogue": [
+        {
+          "persona_id": "P1",
+          "speaker": "Nạn nhân",
+          "content": "Tôi không thể nổi nữa! Xin hãy giúp tôi!"
+        },
+        {
+          "persona_id": "P3",
+          "speaker": "Nhân viên cơ sở",
+          "content": "Tôi đã gọi thêm người! Hãy giữ bình tĩnh, tôi sẽ ném phao cho bạn!"
+        },
+        {
+          "persona_id": "P4",
+          "speaker": "Người bơi gần đó",
+          "content": "Tôi sẽ gọi người giúp ngay bây giờ!"
+        }
+      ],
+      "CE1": "pending",
+      "CE1_remaining_success_criteria": [
+        {
+          "description": "Xác định rủi ro khu vực nước/trơn trượt và kiểm soát đám đông",
+          "levels": [
+            {
+              "score": 5,
+              "descriptor": "Xác định rủi ro khu vực nước/trơn trượt và kiểm soát đám đông"
+            },
+            {
+              "score": 4,
+              "descriptor": ""
+            },
+            {
+              "score": 3,
+              "descriptor": ""
+            },
+            {
+              "score": 2,
+              "descriptor": ""
+            },
+            {
+              "score": 1,
+              "descriptor": ""
+            }
+          ]
+        },
+        {
+          "description": "Tiếp cận đúng kỹ thuật, giới thiệu vai trò và xin hỗ trợ",
+          "levels": [
+            {
+              "score": 5,
+              "descriptor": "Tiếp cận đúng kỹ thuật, giới thiệu vai trò và xin hỗ trợ"
+            },
+            {
+              "score": 4,
+              "descriptor": ""
+            },
+            {
+              "score": 3,
+              "descriptor": ""
+            },
+            {
+              "score": 2,
+              "descriptor": ""
+            },
+            {
+              "score": 1,
+              "descriptor": ""
+            }
+          ]
+        },
+        {
+          "description": "Nêu rõ tình trạng ban đầu (đáp ứng, thở, mạch) bằng thuật ngữ đơn giản",
+          "levels": [
+            {
+              "score": 5,
+              "descriptor": "Nêu rõ tình trạng ban đầu (đáp ứng, thở, mạch) bằng thuật ngữ đơn giản"
+            },
+            {
+              "score": 4,
+              "descriptor": ""
+            },
+            {
+              "score": 3,
+              "descriptor": ""
+            },
+            {
+              "score": 2,
+              "descriptor": ""
+            },
+            {
+              "score": 1,
+              "descriptor": ""
+            }
+          ]
+        }
+      ],
+      "CE1_completed_success_criteria": [],
+      "CE1_partial": [],
+      "CE1_matched": [],
+      "CE1_scores": [
+        {
+          "id": 1,
+          "criterion": "Xác định rủi ro khu vực nước/trơn trượt và kiểm soát đám đông",
+          "score": 1,
+          "analysis": "Không xác định rủi ro và không kiểm soát đám đông."
+        },
+        {
+          "id": 2,
+          "criterion": "Tiếp cận đúng kỹ thuật, giới thiệu vai trò và xin hỗ trợ",
+          "score": 1,
+          "analysis": "Không tiếp cận đúng kỹ thuật và không xin hỗ trợ."
+        },
+        {
+          "id": 3,
+          "criterion": "Nêu rõ tình trạng ban đầu (đáp ứng, thở, mạch) bằng thuật ngữ đơn giản",
+          "score": 1,
+          "analysis": "Không nêu rõ tình trạng ban đầu."
+        }
+      ],
+      "CE1_last_result": null,
+      "CE1_reason": null
+    },
+    "policy_flags": [
+      {
+        "policy_id": "policy_2",
+        "policy_text": "Không đưa ra chẩn đoán y khoa; chỉ thực hiện/điều phối sơ cứu trong phạm vi đào tạo"
+      },
+      {
+        "policy_id": "policy_2",
+        "policy_text": "Không đưa ra chẩn đoán y khoa; chỉ thực hiện/điều phối sơ cứu trong phạm vi đào tạo"
+      },
+      {
+        "policy_id": "policy_2",
+        "policy_text": "Không đưa ra chẩn đoán y khoa; chỉ thực hiện/điều phối sơ cứu trong phạm vi đào tạo"
+      }
+    ],
+    "ai_reply": "1. Tình hình hiện tại rất khẩn cấp, nạn nhân đang trong tình trạng đuối nước và cần sự can thiệp ngay lập tức. \n2. Học viên đang cảm thấy sợ hãi và chưa thực hiện hành động nào để hỗ trợ nạn nhân, điều này có thể làm tình hình trở nên nghiêm trọng hơn. \n3. Hãy hít thở sâu, lấy lại bình tĩnh và yêu cầu nhân viên cơ sở hỗ trợ bạn trong việc kiểm soát đám đông và tiếp cận nạn nhân một cách an toàn. \n4. Nhớ rằng an toàn của bạn và những người xung quanh là ưu tiên hàng đầu; hãy đảm bảo khu vực xung quanh không trơn trượt trước khi tiếp cận nạn nhân.",
+    "system_notice": null
+  }
+}
