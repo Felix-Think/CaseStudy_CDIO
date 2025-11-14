@@ -75,7 +75,6 @@ class ConversationStateRepository:
             "current_event": state.current_event,
             "scene_summary": state.scene_summary,
             "event_summary": state.event_summary,
-            "created_at": datetime.now(timezone.utc),
             "state": state.to_serializable(),
         }
         if metadata:
