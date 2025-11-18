@@ -75,5 +75,5 @@ Khi muốn thêm thư viện vào project, hãy dùng:
 ```bash
 poetry add <package_name>
 ```
-..
+
 ❌ **Không sử dụng** `pip install` hay `conda install` vì sẽ làm lệch môi trường.

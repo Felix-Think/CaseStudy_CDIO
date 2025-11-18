@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <title>Đăng nhập • CaseStudy</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body class="app-body">
+  <div class="app-bg"></div>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="app-header__inner">
+        <div class="brand">
+          <div class="brand__icon">TAT</div>
+          <div class="brand__text">
+            <span class="brand__label">Workspace</span>
+            <h1 class="brand__title">CaseStudy Portal</h1>
+          </div>
+        </div>
+        <nav class="header-actions">
+          <a class="btn btn--ghost action-desktop" href="/">Trang chính</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <div class="login-shell">
+        <section class="card login-hero">
+          <p class="eyebrow eyebrow--primary">CaseStudy Team</p>
+          <h2 class="login-hero__title">Đăng nhập để tiếp tục trao đổi case</h2>
+          <p class="login-hero__text">
+            Quản trị case, theo dõi checklist thành công và kích hoạt các tác vụ AI nội bộ — tất cả trong một workspace.
+          </p>
+          <ul class="login-benefits">
+            <li>Đồng bộ lịch sử làm việc giữa các thiết bị.</li>
+            <li>Chia sẻ tiến độ cho mentor cùng nhóm.</li>
+            <li>Nhận thông báo khi có phản hồi mới.</li>
+          </ul>
+          <div class="login-hero__cta">
+            <span class="pill">Beta private</span>
+            <p class="login-hero__note">Liên hệ TAT Team để được cấp quyền truy cập.</p>
+          </div>
+        </section>
+
+        <section class="card login-card">
+          <header class="login-card__head">
+            <p class="eyebrow eyebrow--primary">Workspace login</p>
+            <h3 class="login-card__title">Chào mừng trở lại</h3>
+            <p class="login-card__subtitle">Nhập thông tin chứng thực CaseStudy Workspace.</p>
+          </header>
+
+          <form id="login-form" class="login-form" autocomplete="on">
+            <div class="field">
+              <label class="field-label" for="login-email">Email</label>
+              <input class="input" type="email" id="login-email" name="email" placeholder="email@example.com" required />
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="login-password">Password</label>
+              <input class="input" type="password" id="login-password" name="password" placeholder="••••••••" required minlength="6" />
+            </div>
+
+            <div class="login-form__row">
+              <label class="login-checkbox">
+                <input type="checkbox" id="remember-login" name="remember" />
+                <span>Ghi nhớ thiết bị này</span>
+              </label>
+              <a class="login-link" href="">Quên password?</a>
+            </div>
+
+            <div class="login-actions">
+              <button type="submit" class="btn btn--primary">
+                Đăng nhập
+                <svg class="btn__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                  <path d="M6 12h12m0 0-4 4m4-4-4-4" />
+                </svg>
+              </button>
+            </div>
+          </form>
+
+          <p id="login-feedback" class="login-feedback" aria-live="polite"></p>
+
+          <div class="login-divider" role="presentation"></div>
+          <div class="login-meta">
+            <p>Chưa có tài khoản? <a class="login-link" href="/register">Đăng ký</a></p>
+            <p class="login-note">Tài khoản được cấp cho thành viên dự án và mentor CaseStudy.</p>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script src="/static/login.js" defer></script>
+</body>
+</html>

@@ -4,20 +4,35 @@ import json
 import shutil
 import tempfile
 from copy import deepcopy
+import logging
+import os
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from casestudy.app.core.config import get_settings
-from casestudy.app.crud.case_crud import fetch_cases
+from casestudy.app.crud.case_crud import (
+    delete_case_documents,
+    fetch_case_documents,
+    fetch_cases,
+)
 from casestudy.app.models.case import CaseDocument
 from casestudy.app.schemas.case import (
     CaseCreatePayload,
     CaseCreateResponse,
+    CaseDetailResponse,
     CaseListResponse,
     CaseSummary,
 )
 from casestudy.utils.load import load_case_from_local
 from casestudy.utils.save import save_case
+if TYPE_CHECKING:
+    from casestudy.utils.semantic_extract import (
+        configure_paths as configure_semantic_paths,
+        sync_case_to_pinecone,
+    )
+
+
+logger = logging.getLogger(__name__)
 
 
 class CaseService:
@@ -73,6 +88,46 @@ class CaseService:
             who_first_on_scene=document.who_first_on_scene,
         )
 
+    def get_case_detail(self, case_id: str) -> CaseDetailResponse:
+        normalized_id = (case_id or "").strip()
+        if not normalized_id:
+            raise ValueError("case_id không hợp lệ.")
+
+        context = None
+        personas: List[Dict[str, Any]] | None = None
+        skeleton = None
+        source = "mongo"
+
+        try:
+            context, personas, skeleton = fetch_case_documents(normalized_id)
+        except Exception as exc:  # pragma: no cover - Mongo connection issues
+            logger.warning(
+                "Không thể lấy case '%s' từ MongoDB: %s", normalized_id, exc, exc_info=True
+            )
+            context = personas = skeleton = None
+
+        if not any([context, personas, skeleton]):
+            context, personas, skeleton = load_case_from_local(normalized_id)
+            source = "local"
+
+        if not any([context, personas, skeleton]):
+            raise LookupError(f"Case '{normalized_id}' không tồn tại.")
+
+        persona_payload = None
+        if personas is not None:
+            persona_payload = {
+                "case_id": normalized_id,
+                "personas": personas or [],
+            }
+
+        return CaseDetailResponse(
+            case_id=normalized_id,
+            context=context,
+            skeleton=skeleton,
+            personas=persona_payload,
+            source=source,
+        )
+
     def create_case(
         self,
         payload: CaseCreatePayload,
@@ -80,6 +135,7 @@ class CaseService:
         persist_local: bool = True,
     ) -> CaseCreateResponse:
         case_id = self._resolve_case_id(payload)
+        existed_in_mongo = self._case_exists_in_mongo(case_id)
         context = self._prepare_context(case_id, payload.context)
         personas = self._prepare_personas(case_id, payload.personas)
         skeleton = self._prepare_skeleton(case_id, payload.skeleton)
@@ -103,29 +159,88 @@ class CaseService:
             )
             cleanup_dir = working_dir
 
+        saved_context = saved_personas = saved_skeleton = None
+        mongo_error: Exception | None = None
+        pinecone_stats: Optional[Dict[str, int]] = None
+        pinecone_error: Optional[str] = None
         try:
             saved_context, saved_personas, saved_skeleton = save_case(str(working_dir))
-        except Exception as exc:
-            if cleanup_dir:
-                shutil.rmtree(cleanup_dir, ignore_errors=True)
-            raise RuntimeError("Không thể lưu case vào MongoDB.") from exc
+        except Exception as exc:  # pragma: no cover - phụ thuộc MongoDB ngoài hệ thống
+            mongo_error = exc
+            logger.warning("Không thể lưu case '%s' lên MongoDB: %s", case_id, exc, exc_info=True)
 
-        if saved_context is None or saved_personas is None or saved_skeleton is None:
-            if cleanup_dir:
-                shutil.rmtree(cleanup_dir, ignore_errors=True)
-            raise RuntimeError("Không thể lưu case vào MongoDB.")
+        mongo_succeeded = (
+            saved_context is not None and saved_personas is not None and saved_skeleton is not None
+        )
 
-        if cleanup_dir:
+        if cleanup_dir and mongo_succeeded:
             shutil.rmtree(cleanup_dir, ignore_errors=True)
 
-        personas_count = len(saved_personas)
+        if mongo_succeeded:
+            pinecone_stats, pinecone_error = self._sync_semantic_memory(
+                case_id, force_rebuild=existed_in_mongo
+            )
+            personas_count = len(saved_personas)
+            message = f"Đã lưu case '{case_id}' lên MongoDB."
+            if pinecone_stats:
+                formatted_stats = ', '.join(f"{label}:{count}" for label, count in pinecone_stats.items())
+                message += f" Sync Pinecone thành công ({formatted_stats})."
+            elif pinecone_error:
+                message += f" Không sync được Pinecone: {pinecone_error}"
+            return CaseCreateResponse(
+                case_id=case_id,
+                personas_count=personas_count,
+                message=message,
+                local_path=str(local_path) if local_path else None,
+            )
 
+        # Fallback: giữ dữ liệu local khi MongoDB không khả dụng
+        if cleanup_dir and not persist_local:
+            local_path = cleanup_dir
+        personas_count = len(personas)
+        fallback_message = (
+            f"Đã lưu case '{case_id}' tại thư mục local."
+            + (" Không thể kết nối MongoDB." if mongo_error else "")
+        )
         return CaseCreateResponse(
             case_id=case_id,
             personas_count=personas_count,
-            message=f"Đã lưu case '{case_id}' lên MongoDB.",
-            local_path=str(local_path) if local_path else None,
+            message=fallback_message,
+            local_path=str(local_path) if local_path else str(working_dir),
         )
+
+    def delete_case(self, case_id: str) -> int:
+        normalized_id = (case_id or "").strip()
+        if not normalized_id:
+            raise ValueError("case_id không hợp lệ.")
+
+        deleted_docs = delete_case_documents(normalized_id)
+        local_dir = self.settings.case_data_dir / normalized_id
+        local_removed = False
+        if local_dir.exists():
+            shutil.rmtree(local_dir, ignore_errors=True)
+            local_removed = True
+
+        if deleted_docs == 0 and not local_removed:
+            raise LookupError(f"Case '{normalized_id}' không tồn tại trong MongoDB.")
+
+        return deleted_docs
+
+    def _case_exists_in_mongo(self, case_id: str) -> bool:
+        normalized_id = (case_id or "").strip()
+        if not normalized_id:
+            return False
+        try:
+            context, personas, skeleton = fetch_case_documents(normalized_id)
+        except Exception as exc:  # pragma: no cover - Mongo connection issues
+            logger.debug(
+                "Không kiểm tra được case '%s' trong MongoDB: %s",
+                normalized_id,
+                exc,
+                exc_info=True,
+            )
+            return False
+        return any([context, personas, skeleton])
 
     @staticmethod
     def _resolve_case_id(payload: CaseCreatePayload) -> str:
@@ -211,3 +326,43 @@ class CaseService:
             json.dump(skeleton, f, ensure_ascii=False, indent=2)
 
         return target_dir
+
+    def _sync_semantic_memory(
+        self, case_id: str, *, force_rebuild: bool = False
+    ) -> Tuple[Optional[Dict[str, int]], Optional[str]]:
+        """
+        Sau khi lưu MongoDB thành công, đẩy nội dung case lên Pinecone để phục vụ tìm kiếm ngữ nghĩa.
+        """
+        settings = get_settings()
+        openai_key = settings.openai_api_key or os.getenv("OPENAI_API_KEY")
+        pinecone_key = getattr(settings, "pinecone_api_key", None) or os.getenv("PINECONE_API_KEY")
+
+        if not openai_key:
+            warning = "OPENAI_API_KEY chưa cấu hình, bỏ qua Pinecone sync."
+            logger.info(warning)
+            return None, warning
+        if not pinecone_key:
+            warning = "PINECONE_API_KEY chưa cấu hình, bỏ qua Pinecone sync."
+            logger.info(warning)
+            return None, warning
+
+        self._ensure_env_var("OPENAI_API_KEY", openai_key)
+        self._ensure_env_var("PINECONE_API_KEY", pinecone_key)
+        self._ensure_env_var("PINECONE_ENVIRONMENT", getattr(settings, "pinecone_environment", None))
+        try:
+            from casestudy.utils.semantic_extract import (
+                configure_paths as configure_semantic_paths,
+                sync_case_to_pinecone,
+            )
+
+            configure_semantic_paths(case_id)
+            stats = sync_case_to_pinecone(case_id, force_rebuild=force_rebuild)
+            return stats, None
+        except Exception as exc:  # pragma: no cover - external dependency
+            logger.warning("Không sync Pinecone cho case '%s': %s", case_id, exc, exc_info=True)
+            return None, str(exc)
+
+    @staticmethod
+    def _ensure_env_var(key: str, value: Optional[str]) -> None:
+        if value and not os.getenv(key):
+            os.environ[key] = value

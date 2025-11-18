@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <title>Đăng ký • CaseStudy</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body class="app-body">
+  <div class="app-bg"></div>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="app-header__inner">
+        <div class="brand">
+          <div class="brand__icon">TAT</div>
+          <div class="brand__text">
+            <span class="brand__label">Workspace</span>
+            <h1 class="brand__title">CaseStudy Portal</h1>
+          </div>
+        </div>
+        <nav class="header-actions">
+          <a class="btn btn--ghost action-desktop" href="/">Trang chính</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <div class="login-shell">
+        <section class="card login-hero">
+          <p class="eyebrow eyebrow--primary">CaseStudy Team</p>
+          <h2 class="login-hero__title">Đăng ký tham gia workspace nội bộ</h2>
+          <p class="login-hero__text">
+            Nhận quyền truy cập vào hệ thống theo dõi case, checklist thành công và trợ lý AI của TAT Team.
+          </p>
+          <ul class="login-benefits">
+            <li>Quy trình nhập case thống nhất với mentor.</li>
+            <li>Công cụ cộng tác thời gian thực cho nhóm.</li>
+            <li>Không gian riêng cho từng chương trình đào tạo.</li>
+          </ul>
+          <div class="login-hero__cta">
+            <span class="pill">Private beta</span>
+            <p class="login-hero__note">Vui lòng cung cấp thông tin chi tiết để được xét duyệt nhanh hơn.</p>
+          </div>
+        </section>
+
+        <section class="card login-card">
+          <header class="login-card__head">
+            <p class="eyebrow eyebrow--primary">Workspace signup</p>
+            <h3 class="login-card__title">Tạo tài khoản CaseStudy</h3>
+            <p class="login-card__subtitle">Chúng tôi xác thực thủ công từng hồ sơ để bảo vệ dữ liệu nhạy cảm.</p>
+          </header>
+
+          <form id="register-form" class="login-form" autocomplete="on">
+            <div class="field">
+              <label class="field-label" for="register-email">Email công việc</label>
+              <input class="input" type="email" id="register-email" name="email" placeholder="ban@tat.team" required />
+            </div>
+
+            <div class="field-grid" data-cols="2">
+              <div class="field">
+                <label class="field-label" for="register-password">Password</label>
+                <input class="input" type="password" id="register-password" name="password" placeholder="••••••••" required minlength="6" />
+              </div>
+              <div class="field">
+                <label class="field-label" for="register-password-confirm">Nhập lại password</label>
+                <input class="input" type="password" id="register-password-confirm" name="passwordConfirm" placeholder="••••••••" required minlength="6" />
+              </div>
+            </div>
+
+            <div class="login-actions">
+              <a class="login-link" href="/login">Đã có tài khoản?</a>
+              <button type="submit" class="btn btn--primary">
+                Gửi đăng ký
+                <svg class="btn__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                  <path d="M6 12h12m0 0-4 4m4-4-4-4" />
+                </svg>
+              </button>
+            </div>
+          </form>
+          <p id="register-feedback" class="login-feedback" aria-live="polite"></p>
+          <div class="login-divider" role="presentation"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="/static/register.js" defer></script>
+</body>
+</html>

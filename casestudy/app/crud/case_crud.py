@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from pymongo.collection import Collection
 
@@ -46,6 +46,22 @@ def fetch_cases(limit: int) -> List[CaseDocument]:
     return [CaseDocument.from_dict(doc) for doc in cursor]
 
 
+def fetch_case_documents(
+    case_id: str,
+) -> Tuple[Optional[Dict[str, Any]], List[Dict[str, Any]], Optional[Dict[str, Any]]]:
+    """
+    Lấy toàn bộ document (context/personas/skeleton) theo case_id.
+    """
+    context_col = _get_context_collection()
+    persona_col = _get_persona_collection()
+    skeleton_col = _get_skeleton_collection()
+
+    context = context_col.find_one({"case_id": case_id}, {"_id": 0})
+    personas = list(persona_col.find({"case_id": case_id}, {"_id": 0}))
+    skeleton = skeleton_col.find_one({"case_id": case_id}, {"_id": 0})
+    return context, personas, skeleton
+
+
 def upsert_case_documents(
     case_id: str,
     context: Dict[str, Any],
@@ -73,3 +89,19 @@ def upsert_case_documents(
     skeleton_col.insert_one(skeleton)
 
     return inserted_personas, 1
+
+
+def delete_case_documents(case_id: str) -> int:
+    """
+    Xóa toàn bộ dữ liệu liên quan đến case_id khỏi MongoDB.
+    Trả về tổng số document đã xóa.
+    """
+    context_col = _get_context_collection()
+    persona_col = _get_persona_collection()
+    skeleton_col = _get_skeleton_collection()
+
+    total = 0
+    total += context_col.delete_many({"case_id": case_id}).deleted_count
+    total += persona_col.delete_many({"case_id": case_id}).deleted_count
+    total += skeleton_col.delete_many({"case_id": case_id}).deleted_count
+    return total

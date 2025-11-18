@@ -9,7 +9,7 @@
     tailwind.config = {
       theme: {
         extend: {
-          colors: {ch
+          colors: {
             primary: {
               50: '#E6F8F3',
               100: '#C7EEDF',
@@ -37,16 +37,18 @@
   <div class="relative flex min-h-screen flex-col">
     <header class="sticky top-0 z-40 border-b border-white/40 bg-white/80 backdrop-blur">
       <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 w-full">
           <div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary-600 text-sm font-semibold uppercase tracking-widest text-white">TAT</div>
-          <div>
+          <div class="flex flex-1 items-center gap-3">
             <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary-600">CaseStudy</p>
             <h1 class="text-lg font-semibold text-slate-900">Danh sách Case realtime</h1>
           </div>
+          <a href="/user" class="text-sm font-semibold text-primary-600 transition hover:text-primary-500 ml-auto">Quay lại trang chính</a>
         </div>
         <nav class="hidden items-center gap-3 md:flex">
-          <a href="/" class="btn btn--ghost action-desktop">Trang chủ</a>
+          <a href="/" class="btn btn--ghost action-desktop">Trang chá»§</a>
           <a href="/chatframe" class="btn btn--ghost action-desktop">Chat Frame</a>
+          <a href="/quan-ly-kho" class="btn btn--ghost action-desktop">Quản lý kho</a>
           <a href="/nhap-case" class="btn btn--primary">Nhập Case</a>
         </nav>
       </div>
@@ -154,13 +156,73 @@
       }
     };
 
+    const deleteCaseById = async (caseId) => {
+      const normalizedId = (caseId || "").trim();
+      if (!normalizedId) throw new Error("case_id không hợp lệ.");
+
+      try {
+        const response = await fetch(`/api/cases/${encodeURIComponent(normalizedId)}`, {
+          method: "DELETE",
+        });
+
+        if (!response.ok) {
+          const message =
+            response.status === 404
+              ? `Case '${normalizedId}' không tồn tại hoặc đã bị xóa.`
+              : `Không thể xóa case '${normalizedId}'. (HTTP ${response.status})`;
+          throw new Error(message);
+        }
+      } catch (error) {
+        if (error instanceof Error) throw error;
+        throw new Error("Không thể xóa case lúc này.");
+      }
+    };
+
     const buildCard = (item) => {
+      const wrapper = document.createElement("div");
+      wrapper.className = "group relative";
+
       const anchor = document.createElement("a");
-      anchor.className = "group flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white/90 p-5 shadow-card transition hover:-translate-y-1 hover:border-primary-200 hover:shadow-lg";
+      anchor.className = "flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white/90 p-5 shadow-card transition hover:-translate-y-1 hover:border-primary-200 hover:shadow-lg";
       anchor.href = `/chatframe?case_id=${encodeURIComponent(item.case_id || "")}`;
       anchor.setAttribute("data-status", (item.status || "queued").toLowerCase());
       anchor.setAttribute("data-topic", (item.topic || "").toLowerCase());
       anchor.setAttribute("data-case-id", (item.case_id || "").toLowerCase());
+
+      const deleteButton = document.createElement("button");
+      deleteButton.type = "button";
+      deleteButton.className = "absolute right-4 top-4 z-10 inline-flex items-center rounded-full border border-slate-200 bg-white/95 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500 opacity-0 shadow-sm transition duration-200 hover:border-red-200 hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200 group-hover:opacity-100";
+      deleteButton.textContent = "Xóa";
+      deleteButton.setAttribute("aria-label", `Xóa case ${item.case_id || ""}`);
+
+      deleteButton.addEventListener("click", async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!item.case_id) return;
+
+        const confirmed = confirm(`Bạn có chắc muốn xóa case '${item.case_id}'?`);
+        if (!confirmed) return;
+
+        const originalLabel = deleteButton.textContent;
+        deleteButton.disabled = true;
+        deleteButton.classList.add("cursor-wait");
+        deleteButton.textContent = "Đang xóa...";
+
+        try {
+          await deleteCaseById(item.case_id);
+          removeCaseFromState(item.case_id);
+        } catch (error) {
+          console.error(error);
+          alert(error instanceof Error ? error.message : "Không thể xóa case. Vui lòng thử lại.");
+        } finally {
+          deleteButton.disabled = false;
+          deleteButton.classList.remove("cursor-wait");
+          deleteButton.textContent = originalLabel;
+        }
+      });
+
+      wrapper.appendChild(anchor);
+      wrapper.appendChild(deleteButton);
 
       const badge = document.createElement("span");
       badge.className = "inline-flex w-fit items-center gap-2 rounded-full border border-primary-100 bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-600";
@@ -204,7 +266,7 @@
         }
       });
 
-      return anchor;
+      return wrapper;
     };
 
     const render = () => {
@@ -235,6 +297,15 @@
       });
 
       render();
+    };
+
+    const removeCaseFromState = (caseId) => {
+      if (!caseId) return;
+      const normalizedId = caseId.toLowerCase();
+      state.cases = state.cases.filter(
+        (item) => (item.case_id || "").toLowerCase() !== normalizedId
+      );
+      applyFilter();
     };
 
     const loadCases = async () => {

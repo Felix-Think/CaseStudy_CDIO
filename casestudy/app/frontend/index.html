@@ -30,12 +30,14 @@
     };
   </script>
 
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body class="min-h-screen font-sans bg-slate-100 text-slate-800">
   <div class="relative">
     <div class="absolute inset-0 -z-10 bg-gradient-to-br from-primary-50 via-white to-slate-100"></div>
 
+    <!-- Header -->
     <header class="sticky top-0 z-40">
       <div class="backdrop-blur bg-white/80 shadow-sm">
         <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
@@ -55,21 +57,21 @@
           </nav>
 
           <div class="flex items-center gap-3">
-            <a href="/nhap-case" class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-500">
-              Nhập case
+            <a href="/login" class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-500">
+            Đăng nhập
             </a>
-            <button class="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-primary-200 hover:text-primary-600">
-              <span aria-hidden="true"></span>
-              Đăng nhập
-            </button>
-            </button>
+            <a href="/register" class="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-primary-200 hover:text-primary-600">
+            Đăng ký
+            </a>
           </div>
         </div>
       </div>
     </header>
 
+    <!-- Main -->
     <main class="mx-auto max-w-7xl px-6 pb-24 pt-16">
       <section id="about" class="grid gap-12 lg:grid-cols-[1.2fr,0.8fr]">
+        <!-- Left content -->
         <div class="space-y-10">
           <span class="inline-flex items-center gap-2 rounded-full border border-primary-100 bg-primary-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-primary-600">
             TAT Team
@@ -88,16 +90,12 @@
             <div class="rounded-3xl border border-slate-100 bg-white/70 p-6 shadow-card">
               <span class="text-xs font-semibold uppercase tracking-wide text-primary-600">Leaderboards</span>
               <h3 class="mt-3 text-xl font-semibold text-slate-900">Bảng xếp hạng theo thời gian thực</h3>
-              <p class="mt-2 text-sm text-slate-600">
-                Ghi nhận thành tích của từng thành viên trên mọi case. Động lực lớn để cùng nhau bứt phá.
-              </p>
+              <p class="mt-2 text-sm text-slate-600">Ghi nhận thành tích của từng thành viên trên mọi case. Động lực lớn để cùng nhau bứt phá.</p>
             </div>
             <div class="rounded-3xl border border-slate-100 bg-white/70 p-6 shadow-card">
               <span class="text-xs font-semibold uppercase tracking-wide text-primary-600">Case Library</span>
               <h3 class="mt-3 text-xl font-semibold text-slate-900">Kho case phong phú</h3>
-              <p class="mt-2 text-sm text-slate-600">
-                Gom lại các bài toán đa dạng, khoa học dữ liệu tới hệ thống AI sản xuất.
-              </p>
+              <p class="mt-2 text-sm text-slate-600">Gom lại các bài toán đa dạng, khoa học dữ liệu tới hệ thống AI sản xuất.</p>
             </div>
           </div>
 
@@ -116,35 +114,51 @@
 
           <div class="flex flex-wrap items-center gap-4">
             <a href="#leaderboard" class="rounded-full bg-primary-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-primary-500">Khám phá Leaderboard</a>
-            <a href="#cases" class="rounded-full border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-primary-200 hover:text-primary-600">Danh sách case</a>
+            <a href="case-list" class="rounded-full border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-primary-200 hover:text-primary-600">Danh sách case</a>
           </div>
         </div>
 
-        <aside id="cases" class="rounded-3xl border border-slate-100 bg-white/80 p-6 shadow-card">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-lg font-semibold text-slate-900">Case</h3>
-              <p class="text-sm text-slate-500">Cập nhật theo thời gian thực</p>
+        <!-- Right column (case + button) -->
+        <div class="flex flex-col">
+          <aside id="cases" class="rounded-3xl border border-slate-100 bg-white/80 p-6 shadow-card flex-1">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-lg font-semibold text-slate-900">Case</h3>
+                <p class="text-sm text-slate-500">Cập nhật theo thời gian thực</p>
+              </div>
+              <div class="rounded-full bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-600">
+                Real-time
+              </div>
             </div>
-            <div class="rounded-full bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-600">
-              Real-time
+
+            <div class="relative mt-6 h-[420px] overflow-hidden">
+              <div class="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-white to-transparent pointer-events-none"></div>
+              <div class="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
+
+              <ul id="case-feed" class="case-feed space-y-4">
+                <li class="case-card">
+                  <span class="case-title text-sm text-slate-500">Đang tải danh sách case...</span>
+                </li>
+              </ul>
             </div>
-          </div>
+          </aside>
 
-          <div class="relative mt-6 h-[420px] overflow-hidden">
-            <div class="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-white to-transparent pointer-events-none"></div>
-            <div class="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
-
-            <ul id="case-feed" class="case-feed space-y-4">
-              <li class="case-card">
-                <span class="case-title text-sm text-slate-500">Đang tải danh sách case...</span>
-              </li>
-            </ul>
+          <!-- Button -->
+          <div class="flex justify-end mt-5">
+            <a href="/quan-ly-case"
+               class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white shadow-card transition hover:bg-primary-500">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7m-9 4h6m-6 4h6m-6-8h6M9 5H7a2 2 0 00-2 2v12" />
+              </svg>
+              Kho quản lý case
+            </a>
           </div>
-        </aside>
+        </div>
       </section>
     </main>
   </div>
+
   <script>
     const MIN_ITEMS_FOR_SCROLL = 6;
 
@@ -157,58 +171,38 @@
 
     const buildCaseCard = (item) => {
       const { case_id, topic, summary, location, time, who_first_on_scene } = item;
-
       const li = createElement("li", "case-card");
       li.appendChild(createElement("span", "case-id", case_id || "Case"));
       li.appendChild(createElement("h4", "case-title", topic || "Chưa có tiêu đề"));
-
       const desc = summary || "Chưa có mô tả cho case này.";
       li.appendChild(createElement("p", "case-desc", desc));
-
       const meta = createElement("div", "case-meta");
-      if (location) {
-        meta.appendChild(createElement("span", null, location));
-      }
-      if (time) {
-        meta.appendChild(createElement("span", null, time));
-      }
-      if (who_first_on_scene) {
-        meta.appendChild(createElement("span", null, who_first_on_scene));
-      }
-
-      if (meta.childElementCount) {
-        li.appendChild(meta);
-      }
-
+      if (location) meta.appendChild(createElement("span", null, location));
+      if (time) meta.appendChild(createElement("span", null, time));
+      if (who_first_on_scene) meta.appendChild(createElement("span", null, who_first_on_scene));
+      if (meta.childElementCount) li.appendChild(meta);
       return li;
     };
 
     const renderCases = (cases) => {
       const feed = document.getElementById("case-feed");
       if (!feed) return;
-
       feed.innerHTML = "";
-
       if (!cases.length) {
         const emptyCard = createElement("li", "case-card");
-        emptyCard.appendChild(
-          createElement("p", "case-desc", "Chưa có case nào được lưu trong hệ thống.")
-        );
+        emptyCard.appendChild(createElement("p", "case-desc", "Chưa có case nào được lưu trong hệ thống."));
         feed.appendChild(emptyCard);
         feed.classList.remove("case-feed");
         return;
       }
-
       cases.map(buildCaseCard).forEach((item) => feed.appendChild(item));
-
       if (cases.length < MIN_ITEMS_FOR_SCROLL) {
         const needed = MIN_ITEMS_FOR_SCROLL - cases.length;
-        for (let i = 0; i < needed; i += 1) {
+        for (let i = 0; i < needed; i++) {
           const source = cases[i % cases.length];
           feed.appendChild(buildCaseCard(source));
         }
       }
-
       feed.classList.add("case-feed");
     };
 
@@ -216,22 +210,14 @@
       const feed = document.getElementById("case-feed");
       try {
         const response = await fetch("/api/cases");
-        if (!response.ok) {
-          throw new Error(`Fetch failed with ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`Fetch failed with ${response.status}`);
         const data = await response.json();
         renderCases(data?.cases ?? []);
       } catch (error) {
         if (feed) {
           feed.innerHTML = "";
           const errorCard = createElement("li", "case-card");
-          errorCard.appendChild(
-            createElement(
-              "p",
-              "case-desc",
-              "Không thể tải dữ liệu case. Vui lòng kiểm tra lại FastAPI server."
-            )
-          );
+          errorCard.appendChild(createElement("p", "case-desc", "Không thể tải dữ liệu case. Vui lòng kiểm tra lại FastAPI server."));
           feed.appendChild(errorCard);
           feed.classList.remove("case-feed");
         }

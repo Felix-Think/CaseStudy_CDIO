@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quản lý Case</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#edf8f4',
+              100: '#cfeee1',
+              200: '#9fddc3',
+              500: '#1ea97c',
+              600: '#158f69',
+              700: '#0f6e4e'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui']
+          },
+          boxShadow: {
+            card: '0 25px 45px -25px rgba(15, 23, 42, 0.35)'
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body class="min-h-screen bg-slate-50 font-sans text-slate-900">
+  <div class="absolute inset-0 -z-10 bg-gradient-to-br from-primary-50 via-white to-slate-100"></div>
+
+  <div class="relative flex min-h-screen flex-col">
+    <header class="sticky top-0 z-40 border-b border-white/40 bg-white/85 backdrop-blur">
+      <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <div class="flex items-center gap-3 w-full">
+          <div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary-600 text-sm font-semibold uppercase tracking-widest text-white">TAT</div>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary-600">CaseStudy</p>
+            <h1 class="text-lg font-semibold text-slate-900">Bảng điều khiển quản lý case</h1>
+          </div>
+          <a href="/user" class="text-sm font-semibold text-primary-600 transition hover:text-primary-500 ml-auto">Quay lại trang chính</a>
+        </div>
+        <nav class="hidden items-center gap-3 md:flex text-sm font-medium">
+          <a href="/" class="btn btn--ghost">Trang chủ</a>
+          <a href="/case-list" class="btn btn--ghost">Danh sách realtime</a>
+          <a href="/nhap-case" class="btn btn--primary">Tạo case mới</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="flex-1 px-6 py-10">
+      <div class="mx-auto flex max-w-6xl flex-col gap-8">
+        <section class="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-card backdrop-blur">
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.35em] text-primary-600">Quản lý case</p>
+              <h2 class="text-2xl font-semibold text-slate-900">Danh sách case hiện có</h2>
+              <p class="text-sm text-slate-500">Tìm kiếm, cập nhật hoặc xóa case trực tiếp trong bảng điều khiển.</p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+              
+              <a href="/nhap-case" class="btn btn--primary">Tạo case mới</a>
+            </div>
+          </div>
+
+          <div class="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div class="flex w-full flex-col gap-3 sm:flex-row sm:items-center">
+              <input
+                id="case-search"
+                type="search"
+                placeholder="Tìm case theo tên, mã hoặc mô tả..."
+                class="w-full rounded-2xl border border-slate-200 bg-white/90 px-4 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
+              />
+              <select
+                id="case-filter"
+                class="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
+              >
+                <option value="all">Tất cả</option>
+                <option value="new">Mới cập nhật</option>
+                <option value="queued">Đang chờ</option>
+              </select>
+            </div>
+            <span id="case-count" class="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500"></span>
+          </div>
+        </section>
+
+        <section class="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-card backdrop-blur">
+          <div id="case-grid" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3"></div>
+          <div id="case-empty" class="hidden rounded-2xl border border-dashed border-slate-200 bg-white/70 p-6 text-center text-sm text-slate-500">
+            Chưa có case nào được lưu. Hãy <a class="font-semibold text-primary-600" href="/nhap-case">tạo case mới</a> để bắt đầu.
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const grid = document.getElementById("case-grid");
+    const emptyState = document.getElementById("case-empty");
+    const caseCount = document.getElementById("case-count");
+    const searchInput = document.getElementById("case-search");
+    const filterSelect = document.getElementById("case-filter");
+
+    const CASE_FORM_URL = "/nhap-case";
+    const CASE_FORM_STORAGE_PREFIX = "case-edit:";
+
+    const state = {
+      cases: [],
+      filtered: [],
+    };
+
+    const formatTag = (value) => {
+      if (!value) return "Không rõ";
+      return value.toString().replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    };
+
+    const deleteCaseById = async (caseId) => {
+      const normalizedId = (caseId || "").trim();
+      if (!normalizedId) throw new Error("case_id không hợp lệ.");
+
+      const response = await fetch(`/api/cases/${encodeURIComponent(normalizedId)}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const message =
+          response.status === 404
+            ? `Case '${normalizedId}' không tồn tại hoặc đã bị xóa.`
+            : `Không thể xóa case '${normalizedId}'. (HTTP ${response.status})`;
+        throw new Error(message);
+      }
+    };
+
+    const fetchCaseDetail = async (caseId) => {
+      const response = await fetch(`/api/cases/${encodeURIComponent(caseId)}`);
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error(`Không tìm thấy case '${caseId}'.`);
+        }
+        throw new Error(`Không thể tải dữ liệu case (HTTP ${response.status}).`);
+      }
+      return response.json();
+    };
+
+    const storeCaseDraftPayload = (caseId, payload) => {
+      if (!caseId || !payload) return;
+      const storageKey = `${CASE_FORM_STORAGE_PREFIX}${caseId}`;
+      const wrapped = {
+        case_id: caseId,
+        payload,
+        stored_at: Date.now(),
+      };
+      try {
+        sessionStorage.setItem(storageKey, JSON.stringify(wrapped));
+      } catch (error) {
+        console.warn("Không thể lưu payload cập nhật case:", error);
+      }
+    };
+
+    const createCard = (item) => {
+      const card = document.createElement("article");
+      card.className =
+        "flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white/95 p-5 shadow-card transition hover:-translate-y-1 hover:border-primary-200";
+
+      const header = document.createElement("div");
+      header.className = "flex items-start justify-between gap-3";
+
+      const badge = document.createElement("span");
+      badge.className =
+        "inline-flex items-center gap-2 rounded-full border border-primary-100 bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-600";
+      badge.textContent = item.case_id || "Case";
+      header.appendChild(badge);
+
+      const status = document.createElement("span");
+      status.className =
+        "rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500";
+      status.textContent = formatTag(item.status || "queued");
+      header.appendChild(status);
+
+      card.appendChild(header);
+
+      const title = document.createElement("h3");
+      title.className = "text-lg font-semibold text-slate-900";
+      title.textContent = item.topic || "Chưa có tiêu đề";
+      card.appendChild(title);
+
+      const desc = document.createElement("p");
+      desc.className = "line-clamp-3 text-sm text-slate-600";
+      desc.textContent = item.summary || "Chưa có mô tả tóm tắt cho case này.";
+      card.appendChild(desc);
+
+      const meta = document.createElement("div");
+      meta.className = "flex flex-wrap items-center gap-3 text-xs text-slate-500";
+      if (item.location) {
+        const pill = document.createElement("span");
+        pill.textContent = item.location;
+        meta.appendChild(pill);
+      }
+      if (item.time) {
+        const pill = document.createElement("span");
+        pill.textContent = item.time;
+        meta.appendChild(pill);
+      }
+      card.appendChild(meta);
+
+      const actions = document.createElement("div");
+      actions.className = "mt-4 flex flex-wrap gap-3";
+
+      const updateButton = document.createElement("button");
+      updateButton.type = "button";
+      updateButton.className =
+        "inline-flex flex-1 items-center justify-center rounded-2xl border border-primary-200 bg-primary-50 px-4 py-2 text-sm font-semibold text-primary-700 transition hover:bg-primary-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-200";
+      updateButton.textContent = "Cập nhật case";
+
+      updateButton.addEventListener("click", async () => {
+        if (!item.case_id) return;
+        updateButton.disabled = true;
+        updateButton.textContent = "Đang tải...";
+        try {
+          const detail = await fetchCaseDetail(item.case_id);
+          storeCaseDraftPayload(item.case_id, detail);
+          window.location.href = `${CASE_FORM_URL}?edit-case=${encodeURIComponent(item.case_id)}`;
+        } catch (error) {
+          console.error(error);
+          alert(error instanceof Error ? error.message : "Không thể tải dữ liệu case.");
+        } finally {
+          updateButton.disabled = false;
+          updateButton.textContent = "Cập nhật case";
+        }
+      });
+
+      const deleteButton = document.createElement("button");
+      deleteButton.type = "button";
+      deleteButton.className =
+        "inline-flex items-center justify-center rounded-2xl border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200";
+      deleteButton.textContent = "Xóa";
+
+      deleteButton.addEventListener("click", async () => {
+        if (!item.case_id) return;
+        const confirmed = confirm(`Bạn có chắc muốn xóa case '${item.case_id}'?`);
+        if (!confirmed) return;
+
+        deleteButton.disabled = true;
+        deleteButton.textContent = "Đang xóa...";
+        try {
+          await deleteCaseById(item.case_id);
+          removeCaseFromState(item.case_id);
+          alert(`Đã xóa case '${item.case_id}'.`);
+        } catch (error) {
+          console.error(error);
+          alert(error instanceof Error ? error.message : "Không thể xóa case. Vui lòng thử lại.");
+        } finally {
+          deleteButton.disabled = false;
+          deleteButton.textContent = "Xóa";
+        }
+      });
+
+      actions.appendChild(updateButton);
+      actions.appendChild(deleteButton);
+      card.appendChild(actions);
+
+      return card;
+    };
+
+    const render = () => {
+      if (!grid) return;
+      grid.innerHTML = "";
+
+      if (!state.filtered.length) {
+        emptyState?.classList.remove("hidden");
+        if (caseCount) caseCount.textContent = "0 case";
+        return;
+      }
+
+      emptyState?.classList.add("hidden");
+      state.filtered.forEach((item) => grid.appendChild(createCard(item)));
+      if (caseCount) caseCount.textContent = `${state.filtered.length} case`;
+    };
+
+    const applyFilter = () => {
+      const query = (searchInput?.value || "").toLowerCase().trim();
+      const status = filterSelect?.value || "all";
+
+      state.filtered = state.cases.filter((item) => {
+        const matchesQuery =
+          !query ||
+          (item.topic || "").toLowerCase().includes(query) ||
+          (item.case_id || "").toLowerCase().includes(query) ||
+          (item.summary || "").toLowerCase().includes(query);
+        const matchesStatus = status === "all" || (item.status || "queued").toLowerCase() === status;
+        return matchesQuery && matchesStatus;
+      });
+
+      render();
+    };
+
+    const removeCaseFromState = (caseId) => {
+      if (!caseId) return;
+      const normalizedId = caseId.toLowerCase();
+      state.cases = state.cases.filter((item) => (item.case_id || "").toLowerCase() !== normalizedId);
+      applyFilter();
+    };
+
+    const loadCases = async () => {
+      try {
+        const response = await fetch("/api/cases");
+        if (!response.ok) throw new Error(`Fetch failed with ${response.status}`);
+        const data = await response.json();
+        state.cases = Array.isArray(data?.cases) ? data.cases : [];
+        state.filtered = [...state.cases];
+        render();
+      } catch (error) {
+        console.error(error);
+        alert("Không thể tải danh sách case. Vui lòng thử lại.");
+        state.cases = [];
+        state.filtered = [];
+        render();
+      }
+    };
+
+    searchInput?.addEventListener("input", applyFilter);
+    filterSelect?.addEventListener("change", applyFilter);
+
+    document.addEventListener("DOMContentLoaded", loadCases);
+  </script>
+</body>
+</html>

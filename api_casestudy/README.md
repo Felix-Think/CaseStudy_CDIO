@@ -1,26 +1,16 @@
 # CaseStudy Agent API
 
-Service FastAPI độc lập chuyên xử lý semantic store **và** điều phối agent hội thoại cho từng case.
+Service FastAPI độc lập chuyên điều phối agent hội thoại cho từng case. Dữ liệu semantic được đồng bộ lên Pinecone thông qua script `casestudy/utils/semantic_extract.py`, API chỉ cần load lại để vận hành phiên trò chuyện.
 
 ## Cấu trúc chính
 
 - `main.py`: FastAPI app factory.
-- `core/config.py`: Cấu hình (Mongo URI, embedding model, thư mục lưu vector).
+- `core/config.py`: Cấu hình kết nối MongoDB, version app.
 - `db/database.py`: Mongo client tái sử dụng.
-- `pipelines/builder.py`: Chuyển dữ liệu case thành `langchain` documents.
-- `services/semantic_service.py`: Nghiệp vụ build/query semantic store.
-- `services/agent_service.py`: Quản lý session, wrap LangGraph agent.
-- `routers/semantic.py`: Endpoint `/api/semantic/*`.
+- `services/agent_service.py`: Quản lý session, wrap LangGraph agent (bao gồm logic load Pinecone retriever).
 - `routers/agent.py`: Endpoint `/api/agent/*`.
 
 ## Endpoint
-
-### Semantic
-
-| Method | Path                  | Mô tả                                           |
-|--------|-----------------------|------------------------------------------------|
-| POST   | `/api/semantic/build` | Đồng bộ lại vector store cho `case_id`.        |
-| POST   | `/api/semantic/query` | Truy vấn semantic store với câu hỏi đầu vào.   |
 
 ### Agent
 
@@ -31,23 +21,9 @@ Service FastAPI độc lập chuyên xử lý semantic store **và** điều ph�
 | DELETE | `/api/agent/sessions/{id}`       | Kết thúc session, giải phóng cache in-memory.                    |
 
 ### Ví dụ payload
-
-```json
-POST /api/semantic/build
-{
-  "case_id": "electric_shock_001",
-  "force_rebuild": true
-}
-```
-
-```json
-POST /api/semantic/query
-{
-  "case_id": "electric_shock_001",
-  "question": "Những nguồn lực hiện trường nào có sẵn?",
-  "top_k": 4
-}
-```
+1. Chạy server `uvicorn api_casestudy.main:app --reload --port 9000`.
+2. Vào http://127.0.0.1:9000/docs → mục `/api/agent/sessions`.
+3. Payload mẫu:
 
 ```json
 POST /api/agent/sessions
@@ -58,6 +34,8 @@ POST /api/agent/sessions
 }
 ```
 
+Các lượt tiếp theo dùng endpoint `/api/agent/sessions/{session_id}/turn`:
+
 ```json
 POST /api/agent/sessions/{session_id}/turn
 {
@@ -66,10 +44,6 @@ POST /api/agent/sessions/{session_id}/turn
 }
 ```
 
-## Chạy thử
+Khi muốn kết thúc phiên nhưng vẫn giữ API chạy: `DELETE /api/agent/sessions/{session_id}`.
 
-```bash
-poetry run uvicorn api_casestudy.main:app --reload --port 9000
-```
-
-> Lưu ý: service sử dụng OpenAI embeddings (`text-embedding-3-small`) giống pipeline hiện có. Thiết lập biến môi trường `OPENAI_API_KEY` trước khi build/query hoặc gọi agent.
+> Lưu ý: đảm bảo dữ liệu semantic đã được push lên Pinecone (thông qua `python -m casestudy.utils.semantic_extract <case_id>`) trước khi khởi tạo session, đồng thời cung cấp `OPENAI_API_KEY` cho backend agent.

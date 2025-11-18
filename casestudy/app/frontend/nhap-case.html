@@ -1,3 +1,4 @@
+﻿
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -5,29 +6,81 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Nhập Case</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            primary: {
-              50: '#E6F8F3',
-              100: '#C7EEDF',
-              200: '#99DFC5',
-              500: '#1EA97C',
-              600: '#158F69'
-            }
-          },
-          fontFamily: {
-            sans: ['Arial', 'ui-sans-serif', 'system-ui']
-          },
-          boxShadow: {
-            card: '0 20px 45px -25px rgba(15, 23, 42, 0.35)'
-          }
-        }
-      }
-    };
-  </script>
+  <template id="success-criterion-template">
+    <div
+      data-success-criterion
+      class="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-inner space-y-4"
+    >
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <span class="text-sm font-semibold text-slate-800">Tiêu chí</span>
+        <button
+          type="button"
+          data-remove-success-criterion
+          class="text-xs font-semibold text-slate-500 transition hover:text-rose-500 focus:outline-none"
+        >
+          Xóa
+        </button>
+      </div>
+      <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+        Mô tả tiêu chí
+        <input
+          type="text"
+          data-criterion-description
+          placeholder="ví dụ: CPR – Đánh giá hiệu quả..."
+          class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
+        />
+      </label>
+      <div class="grid gap-3 md:grid-cols-2">
+        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Mức 5 (Xuất sắc)
+          <textarea
+            rows="2"
+            data-level-descriptor="5"
+            placeholder="Mô tả cụ thể cho điểm 5."
+            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
+          ></textarea>
+        </label>
+        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Mức 4
+          <textarea
+            rows="2"
+            data-level-descriptor="4"
+            placeholder="Mô tả cụ thể cho điểm 4."
+            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
+          ></textarea>
+        </label>
+        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Mức 3
+          <textarea
+            rows="2"
+            data-level-descriptor="3"
+            placeholder="Mô tả cụ thể cho điểm 3."
+            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
+          ></textarea>
+        </label>
+        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Mức 2
+          <textarea
+            rows="2"
+            data-level-descriptor="2"
+            placeholder="Mô tả cụ thể cho điểm 2."
+            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
+          ></textarea>
+        </label>
+        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500 md:col-span-2">
+          Mức 1 (Thấp nhất)
+          <textarea
+            rows="2"
+            data-level-descriptor="1"
+            placeholder="Mô tả cụ thể cho điểm 1."
+            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
+          ></textarea>
+        </label>
+      </div>
+    </div>
+  </template>
+
+  <script src="/static/nhap-case.tailwind.js"></script>
   <style>
     :root {
       font-family: Arial, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -43,1639 +96,385 @@
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-800 font-sans">
+<body class="min-h-screen bg-slate-50 text-slate-800">
   <div class="relative flex min-h-screen flex-col">
     <div class="absolute inset-0 -z-10 bg-gradient-to-br from-primary-50 via-white to-slate-100"></div>
     <header class="sticky top-0 z-40 border-b border-slate-100 bg-white/80 backdrop-blur">
-      <div class="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-        <a href="/" class="text-sm font-semibold text-primary-600 transition hover:text-primary-500">Quay lại trang chính</a>
-        <span class="text-sm text-slate-500">Tổng hợp nội dung từ JSON</span>
+      <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <a href="/quan-ly-case" class="text-sm font-semibold text-primary-600 transition hover:text-primary-500">Quay lại quản lý case</a>
       </div>
     </header>
-    <main class="flex-1 px-6 py-16">
-      <div class="mx-auto flex max-w-6xl flex-col gap-10">
-        <header class="space-y-4 border-b border-slate-100 pb-6">
-          <h1 class="text-3xl font-semibold text-slate-900">Trang Nhập Case</h1>
-          <p class="text-sm text-slate-600">
-            Giao diện này giúp bạn chuẩn bị dữ liệu cho case mới với ba phần chính: Skeleton, Context và Personas.
-          </p>
-          <p class="text-xs text-slate-500">
-            Chọn thẻ tương ứng để nhập dữ liệu. Nội dung chỉ lưu trên trình duyệt trừ khi bạn tự xử lý tải lên máy chủ.
-          </p>
-        </header>
+    <main class="flex-1 px-6 py-12">
+      <div class="mx-auto flex max-w-6xl flex-col gap-12">
+        <section class="rounded-3xl border border-dashed border-primary-200 bg-white/80 p-8 shadow-sm">
+          <div class="flex flex-col items-center gap-3 text-center">
+            <span class="inline-flex items-center gap-2 rounded-full bg-primary-100 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-primary-700">
+              Nhập dữ liệu từ JSON
+            </span>
+            <h1 class="text-3xl font-semibold text-slate-900">Trang Nhập Case</h1>
+            <p class="max-w-2xl text-sm text-slate-600">
+              Tải lần lượt 3 tệp Skeleton, Context và Personas để tự động điền biểu mẫu. Bạn vẫn có thể chỉnh sửa thủ công trước khi lưu case.
+            </p>
+          </div>
+          <div class="mt-6 flex flex-col items-center gap-2 text-center">
+            <button
+              type="button"
+              data-open-draft
+              class="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow transition hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+            >
+              Sinh case tự động
+            </button>
+            <p class="text-xs text-slate-500">
+              Nhập prompt tự do hoặc chủ đề chi tiết để hệ thống gợi ý case hoàn chỉnh nhanh chóng.
+            </p>
+          </div>
+          <div class="mt-8 grid gap-4 md:grid-cols-3">
+            <div
+              class="group flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-primary-100 bg-white/70 p-6 text-center transition duration-200 focus-within:border-primary-300 focus-within:shadow hover:border-primary-300 hover:bg-primary-50"
+              data-json-card="skeleton"
+              tabindex="0"
+              role="button"
+              aria-label="Nhập file Skeleton JSON"
+            >
+              <input type="file" accept="application/json" class="hidden" data-json-input="skeleton" />
+              <span class="text-xs font-semibold uppercase tracking-wide text-primary-700">Skeleton JSON</span>
+              <p class="text-sm font-semibold text-slate-900">Chọn tệp skeleton.json</p>
+              <p class="max-w-[16rem] text-xs text-slate-500" data-json-status="skeleton">Chưa chọn file</p>
+              <div class="flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  data-json-select="skeleton"
+                  class="rounded-full bg-primary-600 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                >
+                  Chọn file
+                </button>
+                <button
+                  type="button"
+                  data-json-export="skeleton"
+                  class="rounded-full border border-primary-200 px-4 py-1.5 text-xs font-semibold text-primary-600 transition hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                >
+                  Luu JSON
+                </button>
+                <button
+                  type="button"
+                  data-json-clear="skeleton"
+                  class="rounded-full border border-slate-200 px-4 py-1.5 text-xs font-semibold text-slate-500 transition hover:border-slate-300 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                >
+                  Xóa
+                </button>
+              </div>
+            </div>
+            <div
+              class="group flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-primary-100 bg-white/70 p-6 text-center transition duration-200 focus-within:border-primary-300 focus-within:shadow hover:border-primary-300 hover:bg-primary-50"
+              data-json-card="context"
+              tabindex="0"
+              role="button"
+              aria-label="Nhập file Context JSON"
+            >
+              <input type="file" accept="application/json" class="hidden" data-json-input="context" />
+              <span class="text-xs font-semibold uppercase tracking-wide text-primary-700">Context JSON</span>
+              <p class="text-sm font-semibold text-slate-900">Chọn tệp context.json</p>
+              <p class="max-w-[16rem] text-xs text-slate-500" data-json-status="context">Chưa chọn file</p>
+              <div class="flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  data-json-select="context"
+                  class="rounded-full bg-primary-600 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                >
+                  Chọn file
+                </button>
+                <button
+                  type="button"
+                  data-json-export="context"
+                  class="rounded-full border border-primary-200 px-4 py-1.5 text-xs font-semibold text-primary-600 transition hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                >
+                  Luu JSON
+                </button>
+                <button
+                  type="button"
+                  data-json-clear="context"
+                  class="rounded-full border border-slate-200 px-4 py-1.5 text-xs font-semibold text-slate-500 transition hover:border-slate-300 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                >
+                  Xóa
+                </button>
+              </div>
+            </div>
+            <div
+              class="group flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-primary-100 bg-white/70 p-6 text-center transition duration-200 focus-within:border-primary-300 focus-within:shadow hover:border-primary-300 hover:bg-primary-50"
+              data-json-card="personas"
+              tabindex="0"
+              role="button"
+              aria-label="Nhập file Personas JSON"
+            >
+              <input type="file" accept="application/json" class="hidden" data-json-input="personas" />
+              <span class="text-xs font-semibold uppercase tracking-wide text-primary-700">Personas JSON</span>
+              <p class="text-sm font-semibold text-slate-900">Chọn tệp personas.json</p>
+              <p class="max-w-[16rem] text-xs text-slate-500" data-json-status="personas">Chưa chọn file</p>
+              <div class="flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  data-json-select="personas"
+                  class="rounded-full bg-primary-600 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                >
+                  Chọn file
+                </button>
+                <button
+                  type="button"
+                  data-json-export="personas"
+                  class="rounded-full border border-primary-200 px-4 py-1.5 text-xs font-semibold text-primary-600 transition hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                >
+                  Luu JSON
+                </button>
+                <button
+                  type="button"
+                  data-json-clear="personas"
+                  class="rounded-full border border-slate-200 px-4 py-1.5 text-xs font-semibold text-slate-500 transition hover:border-slate-300 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                >
+                  Xóa
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
 
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div class="flex flex-wrap gap-3" role="tablist" aria-label="Biểu mẫu nhập case">
+        <section class="space-y-8">
+          <div class="flex flex-wrap gap-3" role="tablist">
             <button
               type="button"
-              role="tab"
-              id="tab-skeleton"
-              data-tab="skeleton"
-              aria-controls="panel-skeleton"
-              aria-selected="true"
-              class="tab-trigger inline-flex items-center gap-2 rounded-full border border-primary-200 px-5 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-primary-100"
+              data-tab-target="skeleton"
+              class="rounded-full border border-primary-200 bg-primary-600 px-5 py-2 text-sm font-semibold text-white shadow transition hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
             >
-              Nhập Skeleton
+              Skeleton
             </button>
             <button
               type="button"
-              role="tab"
-              id="tab-context"
-              data-tab="context"
-              aria-controls="panel-context"
-              aria-selected="false"
-              class="tab-trigger inline-flex items-center gap-2 rounded-full border border-primary-200 px-5 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-primary-100"
+              data-tab-target="context"
+              class="rounded-full border border-primary-200 bg-white px-5 py-2 text-sm font-semibold text-primary-600 transition hover:border-primary-300 hover:text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-200"
             >
-              Nhập Context
+              Context
             </button>
             <button
               type="button"
-              role="tab"
-              id="tab-personas"
-              data-tab="personas"
-              aria-controls="panel-personas"
-              aria-selected="false"
-              class="tab-trigger inline-flex items-center gap-2 rounded-full border border-primary-200 px-5 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-primary-100"
+              data-tab-target="personas"
+              class="rounded-full border border-primary-200 bg-white px-5 py-2 text-sm font-semibold text-primary-600 transition hover:border-primary-300 hover:text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-200"
             >
-              Nhập Personas
+              Personas
             </button>
           </div>
-          <button
-            type="button"
-            id="save-case-button"
-            class="rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-semibold text-slate-400 transition focus:outline-none focus:ring-2 focus:ring-primary-100 cursor-not-allowed"
-            disabled
-          >
-            Lưu Case
-          </button>
-        </div>
 
-        <section
-          id="panel-skeleton"
-          role="tabpanel"
-          aria-labelledby="tab-skeleton"
-          data-panel="skeleton"
-          class="tab-panel rounded-3xl border border-slate-100 bg-white/80 p-8 shadow-card"
-        >
-          <form data-prevent-submit class="space-y-6">
-            <div class="grid gap-4 md:grid-cols-2">
-              <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Case ID
-                <input
-                  type="text"
-                  placeholder="ví dụ: case_training_001"
-                  class="mt-2 w-full rounded-xl border border-slate-200 bg-white/70 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                />
-              </label>
-              <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Tên case
-                <input
-                  type="text"
-                  placeholder="ví dụ: Huấn luyện xử lý sự cố khẩn cấp"
-                  class="mt-2 w-full rounded-xl border border-slate-200 bg-white/70 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                />
-              </label>
-            </div>
-
-            <div>
-              <div class="flex flex-wrap items-center gap-3">
-                <h2 class="text-base font-semibold text-slate-900">Danh sách Canon Event</h2>
-              </div>
-              <p class="mt-2 text-xs text-slate-500">
-                Điền từng bước theo trình tự của case. Có thể thêm nhiều event và chỉnh timeout, NPC, nhánh chuyển tiếp.
-              </p>
-              <div class="mt-4 space-y-4" data-skeleton-events>
-                <div data-event-block class="rounded-2xl border border-slate-100 bg-white/60 p-6 shadow-inner">
-                  <div class="flex flex-wrap items-center justify-between gap-3">
-                    <h3 class="text-sm font-semibold text-slate-900">Canon Event</h3>
+          <div class="rounded-3xl border border-slate-200 bg-white/90 p-8 shadow-lg">
+            <section data-panel="skeleton" class="space-y-8">
+              <header class="space-y-1">
+                <h2 class="text-2xl font-semibold text-slate-900">Skeleton</h2>
+                <p class="text-sm text-slate-600">Thông tin tổng quan và danh sách Canon Event.</p>
+              </header>
+              <form data-form="skeleton" class="space-y-8">
+                <div class="grid gap-4 md:grid-cols-2" data-basic-fields="skeleton"></div>
+                <div class="space-y-4">
+                  <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-slate-900">Canon Events</h3>
                     <button
                       type="button"
-                      data-remove-event
-                      class="text-xs font-semibold text-slate-500 transition hover:text-primary-600"
+                      data-add-event
+                      class="inline-flex items-center gap-2 rounded-full border border-primary-200 px-4 py-2 text-xs font-semibold text-primary-600 transition hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-200"
                     >
-                      Xóa
+                      + Thêm canon event
                     </button>
                   </div>
-                  <div class="mt-4 grid gap-4 md:grid-cols-2">
-                    <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Mã sự kiện
-                      <input
-                        type="text"
-                        placeholder="ví dụ: CE1"
-                        class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                      />
-                    </label>
-                    <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Tiêu đề
-                      <input
-                        type="text"
-                        placeholder="ví dụ: Đánh giá ban đầu hiện trường"
-                        class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                      />
-                    </label>
-                  </div>
-                  <label class="mt-4 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Mô tả chi tiết
-                    <textarea
-                      rows="3"
-                      placeholder="Mô tả ngắn gọn về nhiệm vụ của event."
-                      class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                    ></textarea>
-                  </label>
-                  <div class="mt-4 grid gap-4 md:grid-cols-2">
-                    <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Success Criteria
-                      <textarea
-                        rows="3"
-                        placeholder="Ghi từng tiêu chí trên một dòng."
-                        class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                      ></textarea>
-                    </label>
-                    <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      NPC xuất hiện
-                      <input
-                        type="text"
-                        placeholder="ví dụ: P1: Điều phối viên, P2: Người hỗ trợ"
-                        class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                      />
-                    </label>
-                  </div>
-                  <div class="mt-4 grid gap-4 md:grid-cols-3">
-                    <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Timeout (lượt)
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder="ví dụ: 3"
-                        class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                      />
-                    </label>
-                    <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      On Success
-                      <input
-                        type="text"
-                        placeholder="ví dụ: CE2"
-                        class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                      />
-                    </label>
-                    <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      On Fail
-                      <input
-                        type="text"
-                        placeholder="ví dụ: CE1_RETRY"
-                        class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                      />
-                    </label>
-                  </div>
+                  <div class="space-y-5" data-list="canon-events"></div>
                 </div>
-              </div>
-              <div class="mt-4 flex justify-end">
-                <button
-                  type="button"
-                  data-add-event
-                  class="inline-flex items-center gap-2 rounded-full border border-primary-200 bg-primary-50 px-4 py-2 text-xs font-semibold text-primary-600 transition hover:border-primary-400 hover:bg-primary-100"
-                >
-                  + Thêm event
-                </button>
-              </div>
-            </div>
-
-            <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
-              <button
-                type="reset"
-                class="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-primary-200 hover:text-primary-600"
-              >
-                Reset
-              </button>
-              <button
-                type="button"
-                data-next-tab="context"
-                class="rounded-full bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-500"
-              >
-                Sang tab Context
-              </button>
-            </div>
-          </form>
-        </section>
-
-        <section
-          id="panel-context"
-          role="tabpanel"
-          aria-labelledby="tab-context"
-          data-panel="context"
-          class="tab-panel hidden rounded-3xl border border-slate-100 bg-white/80 p-8 shadow-card"
-        >
-          <form data-prevent-submit class="space-y-6">
-            <div class="grid gap-4 md:grid-cols-2">
-              <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Case ID
-                <input
-                  type="text"
-                  placeholder="ví dụ: case_training_001"
-                  class="mt-2 w-full rounded-xl border border-slate-200 bg-white/70 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                />
-              </label>
-              <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Chủ đề case
-                <input
-                  type="text"
-                  placeholder="ví dụ: Ứng phó sự cố vận hành"
-                  class="mt-2 w-full rounded-xl border border-slate-200 bg-white/70 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                />
-              </label>
-            </div>
-
-            <fieldset class="space-y-4 rounded-2xl border border-slate-100 bg-white/60 p-6 shadow-inner">
-              <legend class="text-sm font-semibold uppercase tracking-wide text-slate-500">Thông tin hiện trường</legend>
-              <div class="grid gap-4 md:grid-cols-2">
-                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Thời gian
-                  <input
-                    type="text"
-                    placeholder="ví dụ: 14:30"
-                    class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                  />
-                </label>
-                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Thời tiết
-                  <input
-                    type="text"
-                    placeholder="ví dụ: Mưa nhẹ, sàn trơn"
-                    class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                  />
-                </label>
-                <label class="md:col-span-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Vị trí
-                  <textarea
-                    rows="2"
-                    placeholder="ví dụ: Khu vực sản xuất chính, nhiều người qua lại."
-                    class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                  ></textarea>
-                </label>
-                <label class="md:col-span-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Mức độ ồn &amp; ghi chú khác
-                  <textarea
-                    rows="2"
-                    placeholder="ví dụ: Ồn ào do máy móc, liên tục có thông báo nội bộ."
-                    class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                  ></textarea>
-                </label>
-              </div>
-            </fieldset>
-
-            <fieldset class="space-y-4 rounded-2xl border border-slate-100 bg-white/60 p-6 shadow-inner">
-              <legend class="text-sm font-semibold uppercase tracking-wide text-slate-500">Trạng thái ban đầu</legend>
-              <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Tóm tắt sự kiện
-                <textarea
-                  rows="2"
-                  placeholder="ví dụ: Phát hiện sự cố bất thường, cần phản ứng khẩn cấp."
-                  class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                ></textarea>
-              </label>
-              <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Tình trạng hiện tại
-                <textarea
-                  rows="3"
-                  placeholder="ví dụ: Nạn nhân mệt mỏi, dấu hiệu sinh tồn không ổn định."
-                  class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                ></textarea>
-              </label>
-              <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Ai tiếp cận đầu tiên
-                <input
-                  type="text"
-                  placeholder="ví dụ: Nhân viên trực ca"
-                  class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                />
-              </label>
-            </fieldset>
-
-            <fieldset class="space-y-4 rounded-2xl border border-slate-100 bg-white/60 p-6 shadow-inner">
-              <legend class="text-sm font-semibold uppercase tracking-wide text-slate-500">Nguồn lực sẵn có</legend>
-              <p class="text-xs text-slate-500">
-                Tạo các nhóm nguồn lực phù hợp với case. Mỗi nhóm có thể đại diện cho thiết bị, nhân lực hoặc bất kỳ tài nguyên nào khác.
-              </p>
-              <div class="space-y-4" data-resource-list>
-                <div data-resource-block class="rounded-2xl border border-slate-100 bg-white/70 p-6 shadow-inner">
-                  <div class="flex flex-wrap items-center justify-between gap-3">
-                    <h3 class="text-sm font-semibold text-slate-900">Nhóm nguồn lực</h3>
-                    <button
-                      type="button"
-                      data-remove-resource
-                      class="text-xs font-semibold text-slate-500 transition hover:text-primary-600"
-                    >
-                      Xóa
-                    </button>
-                  </div>
-                  <div class="mt-4 grid gap-4 md:grid-cols-2">
-                    <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Tên nhóm
-                      <input
-                        type="text"
-                        placeholder="ví dụ: Thiết bị hỗ trợ"
-                        class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                      />
-                    </label>
-                    <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Ghi chú (tùy chọn)
-                      <input
-                        type="text"
-                        placeholder="ví dụ: Đặt gần cửa ra vào"
-                        class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                      />
-                    </label>
-                  </div>
-                  <label class="mt-4 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Danh sách nguồn lực
-                    <textarea
-                      rows="3"
-                      placeholder="Ghi từng nguồn lực trên một dòng."
-                      class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                    ></textarea>
-                  </label>
-                </div>
-              </div>
-              <div class="mt-4 flex justify-end">
-                <button
-                  type="button"
-                  data-add-resource
-                  class="inline-flex items-center gap-2 rounded-full border border-primary-200 bg-primary-50 px-4 py-2 text-xs font-semibold text-primary-600 transition hover:border-primary-400 hover:bg-primary-100"
-                >
-                  + Thêm nhóm nguồn lực
-                </button>
-              </div>
-            </fieldset>
-
-            <fieldset class="space-y-4 rounded-2xl border border-slate-100 bg-white/60 p-6 shadow-inner">
-              <legend class="text-sm font-semibold uppercase tracking-wide text-slate-500">Ràng buộc &amp; chính sách</legend>
-              <div class="grid gap-4 md:grid-cols-2">
-                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Ràng buộc hiện trường
-                  <textarea
-                    rows="3"
-                    placeholder="ví dụ: Không gian hạn chế&#10;Thiết bị thiếu&#10;Áp lực thời gian"
-                    class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                  ></textarea>
-                </label>
-                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Chính sách &amp; an toàn
-                  <textarea
-                    rows="3"
-                    placeholder="ví dụ: Ưu tiên an toàn đội ngũ&#10;Tuân thủ quy trình tiêu chuẩn&#10;Bảo mật thông tin"
-                    class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                  ></textarea>
-                </label>
-              </div>
-            </fieldset>
-
-            <fieldset class="space-y-4 rounded-2xl border border-slate-100 bg-white/60 p-6 shadow-inner">
-              <legend class="text-sm font-semibold uppercase tracking-wide text-slate-500">Bàn giao &amp; kết thúc</legend>
-              <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Đơn vị bàn giao
-                <input
-                  type="text"
-                  placeholder="ví dụ: Đội phản ứng chuyên trách"
-                  class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                />
-              </label>
-              <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Trạng thái thành công cuối cùng
-                <textarea
-                  rows="3"
-                  placeholder="ví dụ: Nạn nhân ổn định, thông tin bàn giao đầy đủ, bên liên quan được trấn an."
-                  class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                ></textarea>
-              </label>
-            </fieldset>
-
-            <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
-              <button
-                type="reset"
-                class="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-primary-200 hover:text-primary-600"
-              >
-                Reset
-              </button>
-              <div class="flex items-center gap-3">
-                <button
-                  type="button"
-                  data-prev-tab="skeleton"
-                  class="rounded-full border border-primary-200 px-4 py-2 text-sm font-semibold text-primary-600 transition hover:bg-primary-50"
-                >
-                  Quay lại Skeleton
-                </button>
-                <button
-                  type="button"
-                  data-next-tab="personas"
-                  class="rounded-full bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-500"
-                >
-                  Sang tab Personas
-                </button>
-              </div>
-            </div>
-        </div>
-          </form>
-        </section>
-
-        <section
-          id="panel-personas"
-          role="tabpanel"
-          aria-labelledby="tab-personas"
-          data-panel="personas"
-          class="tab-panel hidden rounded-3xl border border-slate-100 bg-white/80 p-8 shadow-card"
-        >
-          <form data-prevent-submit class="space-y-6">
-            <div class="grid gap-4 md:grid-cols-2">
-              <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Case ID
-                <input
-                  type="text"
-                  placeholder="ví dụ: case_training_001"
-                  class="mt-2 w-full rounded-xl border border-slate-200 bg-white/70 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                />
-              </label>
-              <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Số lượng persona (tham khảo)
-                <input
-                  type="number"
-                  min="1"
-                  placeholder="ví dụ: 4"
-                  class="mt-2 w-full rounded-xl border border-slate-200 bg-white/70 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                />
-              </label>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-3">
-              <h2 class="text-base font-semibold text-slate-900">Danh sách Personas</h2>
-            </div>
-            <p class="text-xs text-slate-500">
-              Mỗi persona đại diện cho một nhân vật tham gia tình huống. Bạn có thể thêm hoặc xóa nhưng luôn dựa trên cấu trúc JSON gốc.
-            </p>
-
-            <div class="space-y-4" data-persona-list>
-              <div data-persona-item class="rounded-2xl border border-slate-100 bg-white/60 p-6 shadow-inner">
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                  <h3 class="text-sm font-semibold text-slate-900">Persona</h3>
+                <div class="flex justify-end gap-3">
                   <button
                     type="button"
-                    data-remove-persona
-                    class="text-xs font-semibold text-slate-500 transition hover:text-primary-600"
+                    data-next-tab="context"
+                    class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
                   >
-                    Xóa
+                    Sang Context →
                   </button>
                 </div>
-                <div class="mt-4 grid gap-4 md:grid-cols-2">
-                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Persona ID
-                  <input
-                    type="text"
-                    placeholder="ví dụ: P1"
-                    class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                  />
-                </label>
-                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Tên nhân vật
-                  <input
-                    type="text"
-                    placeholder="ví dụ: Điều phối viên hiện trường"
-                    class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                  />
-                </label>
-                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Vai trò
-                  <input
-                    type="text"
-                    placeholder="ví dụ: Giám sát sự cố"
-                    class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                  />
-                </label>
-                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Tuổi
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="ví dụ: 32"
-                    class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                  />
-                </label>
-                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Giới tính
-                  <input
-                    type="text"
-                    placeholder="ví dụ: Nam/Nữ/Khác"
-                    class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                  />
-                </label>
-              </div>
-              <label class="mt-4 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Lý lịch / hoàn cảnh
-                <textarea
-                  rows="3"
-                  placeholder="ví dụ: Kinh nghiệm làm việc, điểm mạnh, hạn chế."
-                  class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                ></textarea>
-              </label>
-              <label class="mt-4 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Tính cách
-                <textarea
-                  rows="3"
-                  placeholder="ví dụ: Bình tĩnh, quyết đoán, nhạy cảm."
-                  class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                ></textarea>
-              </label>
-              <div class="mt-4 grid gap-4 md:grid-cols-2">
-                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Mục tiêu
-                  <textarea
-                    rows="3"
-                    placeholder="ví dụ: Đảm bảo an toàn đội ngũ, hoàn thành nhiệm vụ."
-                    class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                  ></textarea>
-                </label>
-                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Speech pattern
-                  <textarea
-                    rows="3"
-                    placeholder="ví dụ: Nói nhanh, nhiều thuật ngữ; hoặc chậm rãi, trấn an."
-                    class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                  ></textarea>
-                </label>
-              </div>
-              <div class="mt-4 grid gap-4 md:grid-cols-3">
-                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Emotion ban đầu
-                  <input
-                    type="text"
-                    placeholder="ví dụ: Lo lắng"
-                    class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                  />
-                </label>
-                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Emotion kết thúc
-                  <input
-                    type="text"
-                    placeholder="ví dụ: Bình tĩnh"
-                    class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                  />
-                </label>
-                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Voice tags
-                  <input
-                    type="text"
-                    placeholder="ví dụ: mentor, calm"
-                    class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                  />
-                </label>
-              </div>
-              <label class="mt-4 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Emotion trong quá trình
-                <textarea
-                  rows="3"
-                  placeholder="ví dụ: căng thẳng&#10;tập trung&#10;trấn an"
-                  class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                ></textarea>
-                </label>
-              </div>
-            </div>
+              </form>
+            </section>
 
-            <div class="mt-4 flex justify-end">
-              <button
-                type="button"
-                data-add-persona
-                class="inline-flex items-center gap-2 rounded-full border border-primary-200 bg-primary-50 px-4 py-2 text-xs font-semibold text-primary-600 transition hover:border-primary-400 hover:bg-primary-100"
-              >
-                + Thêm persona
-              </button>
-            </div>
+            <section data-panel="context" class="hidden space-y-8">
+              <header class="space-y-1">
+                <h2 class="text-2xl font-semibold text-slate-900">Context</h2>
+                <p class="text-sm text-slate-600">Bối cảnh, resource và điều kiện hiện trường.</p>
+              </header>
+              <form data-form="context" class="space-y-8">
+                <div class="grid gap-4 md:grid-cols-2" data-basic-fields="context"></div>
+                <div class="rounded-2xl border border-slate-200 bg-white/70 p-5 shadow-inner">
+                  <h3 class="text-base font-semibold text-slate-900">Bối cảnh (Scene)</h3>
+                  <div class="mt-4 grid gap-4 md:grid-cols-2" data-scene-fields></div>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-white/70 p-5 shadow-inner">
+                  <h3 class="text-base font-semibold text-slate-900">Sự kiện ban đầu</h3>
+                  <div class="mt-4 grid gap-4 md:grid-cols-2" data-index-event-fields></div>
+                </div>
+                <div class="grid gap-4 md:grid-cols-2" data-context-notes></div>
+                <div class="space-y-4">
+                  <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-slate-900">Nguồn lực khả dụng</h3>
+                    <button
+                      type="button"
+                      data-add-resource
+                      class="inline-flex items-center gap-2 rounded-full border border-primary-200 px-4 py-2 text-xs font-semibold text-primary-600 transition hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                    >
+                      + Thêm nhóm resource
+                    </button>
+                  </div>
+                  <div class="space-y-5" data-list="resources"></div>
+                </div>
+                <div class="flex flex-wrap justify-between gap-3">
+                  <button
+                    type="button"
+                    data-prev-tab="skeleton"
+                    class="inline-flex items-center gap-2 rounded-full border border-primary-200 px-5 py-2 text-sm font-semibold text-primary-600 transition hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                  >
+                    ← Về Skeleton
+                  </button>
+                  <button
+                    type="button"
+                    data-next-tab="personas"
+                    class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                  >
+                    Sang Personas →
+                  </button>
+                </div>
+              </form>
+            </section>
 
-            <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
-              <button
-                type="reset"
-                class="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-primary-200 hover:text-primary-600"
-              >
-                Reset
-              </button>
-              <button
-                type="button"
-                data-prev-tab="context"
-                class="rounded-full border border-primary-200 px-4 py-2 text-sm font-semibold text-primary-600 transition hover:bg-primary-50"
-              >
-                Quay lại Context
-              </button>
-            </div>
-          </form>
+            <section data-panel="personas" class="hidden space-y-8">
+              <header class="space-y-1">
+                <h2 class="text-2xl font-semibold text-slate-900">Personas</h2>
+                <p class="text-sm text-slate-600">Danh sách nhân vật và đặc điểm hành vi.</p>
+              </header>
+              <form data-form="personas" class="space-y-8">
+                <div class="grid gap-4 md:grid-cols-2" data-basic-fields="personas"></div>
+                <div class="space-y-4">
+                  <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-slate-900">Danh sách Persona</h3>
+                    <button
+                      type="button"
+                      data-add-persona
+                      class="inline-flex items-center gap-2 rounded-full border border-primary-200 px-4 py-2 text-xs font-semibold text-primary-600 transition hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                    >
+                      + Thêm persona
+                    </button>
+                  </div>
+                  <div class="space-y-5" data-list="personas"></div>
+                </div>
+                <div class="flex flex-wrap justify-between gap-3">
+                  <button
+                    type="button"
+                    data-prev-tab="context"
+                    class="inline-flex items-center gap-2 rounded-full border border-primary-200 px-5 py-2 text-sm font-semibold text-primary-600 transition hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                  >
+                    ← Về Context
+                  </button>
+                  <button
+                    type="button"
+                    data-save-case
+                    class="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-6 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 disabled:cursor-not-allowed disabled:bg-emerald-400 disabled:opacity-60"
+                  >
+                    Lưu case
+                  </button>
+                </div>
+              </form>
+            </section>
+          </div>
         </section>
       </div>
     </main>
   </div>
-
-  <template id="resource-template">
-    <div data-resource-block class="rounded-2xl border border-slate-100 bg-white/70 p-6 shadow-inner">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <h3 class="text-sm font-semibold text-slate-900">Nhóm nguồn lực</h3>
-        <button
-          type="button"
-          data-remove-resource
-          class="text-xs font-semibold text-slate-500 transition hover:text-primary-600"
-        >
-          Xóa
-        </button>
-      </div>
-      <div class="mt-4 grid gap-4 md:grid-cols-2">
-        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Tên nhóm
-          <input
-            type="text"
-            placeholder="ví dụ: Nhân lực hỗ trợ"
-            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-          />
-        </label>
-        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Ghi chú (tùy chọn)
-          <input
-            type="text"
-            placeholder="ví dụ: Liên hệ trực ca"
-            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-          />
-        </label>
-      </div>
-      <label class="mt-4 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-        Danh sách nguồn lực
-        <textarea
-          rows="3"
-          placeholder="Ghi từng nguồn lực trên một dòng."
-          class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-        ></textarea>
-      </label>
+  <div
+    data-draft-modal
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 px-6 py-8"
+    role="dialog"
+    aria-modal="true"
+  >
+    <div class="relative max-w-2xl rounded-3xl bg-white p-6 shadow-2xl">
+      <button
+        type="button"
+        data-close-draft
+        class="absolute right-4 top-4 rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-500 hover:bg-slate-200"
+        aria-label="Đóng"
+      >
+        &#10005;
+      </button>
+      <form data-draft-form class="space-y-5">
+        <header class="space-y-2">
+          <span class="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
+            Agent gợi ý case
+          </span>
+          <h2 class="text-xl font-semibold text-slate-900">Sinh case tự động</h2>
+          <p class="text-sm text-slate-600">
+            Mô tả chủ đề, nhân vật mong muốn hoặc các chi tiết khác để hệ thống sinh ra skeleton, context và personas tương ứng.
+          </p>
+        </header>
+        <div class="space-y-3">
+          <label class="flex flex-col gap-2 text-left">
+            <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Prompt tự do</span>
+            <textarea
+              data-draft-prompt
+              rows="4"
+              placeholder="Ví dụ: Tạo case về khám răng định kỳ với 3 nhân vật: bác sĩ hướng dẫn, điều dưỡng hỗ trợ và bệnh nhân cao tuổi."
+              class="w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+            ></textarea>
+          </label>
+          <div class="grid gap-3 md:grid-cols-3">
+            <label class="flex flex-col gap-2 text-left">
+              <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Chủ đề (tùy chọn)</span>
+              <input
+                type="text"
+                data-draft-topic
+                placeholder="VD: Khám răng định kỳ tại phòng khám ABC"
+                class="rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+              />
+            </label>
+            <label class="flex flex-col gap-2 text-left">
+              <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Số nhân vật dự kiến</span>
+              <input
+                type="number"
+                min="1"
+                data-draft-persona-count
+                placeholder="Mặc định 3"
+                class="rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+              />
+            </label>
+            <label class="flex flex-col gap-2 text-left">
+              <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Địa điểm chính (tùy chọn)</span>
+              <input
+                type="text"
+                data-draft-location
+                placeholder="VD: Phòng khám nha khoa Quận 3"
+                class="rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+              />
+            </label>
+          </div>
+        </div>
+        <footer class="flex flex-wrap items-center justify-between gap-3">
+          <p data-draft-status class="text-xs text-slate-500"></p>
+          <div class="flex gap-3">
+            <button
+              type="button"
+              data-close-draft
+              class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              data-draft-submit
+              class="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+            >
+              Sinh case
+            </button>
+          </div>
+        </footer>
+      </form>
     </div>
-  </template>
-
-  <template id="skeleton-event-template">
-    <div data-event-block class="rounded-2xl border border-slate-100 bg-white/60 p-6 shadow-inner">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <h3 class="text-sm font-semibold text-slate-900">Canon Event</h3>
-        <button
-          type="button"
-          data-remove-event
-          class="text-xs font-semibold text-slate-500 transition hover:text-primary-600"
-        >
-          Xóa
-        </button>
-      </div>
-      <div class="mt-4 grid gap-4 md:grid-cols-2">
-        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Mã sự kiện
-          <input
-            type="text"
-            placeholder="ví dụ: CE2"
-            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-          />
-        </label>
-        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Tiêu đề
-          <input
-            type="text"
-            placeholder="ví dụ: Điều phối phản ứng"
-            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-          />
-        </label>
-      </div>
-      <label class="mt-4 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-        Mô tả chi tiết
-        <textarea
-          rows="3"
-          placeholder="Mô tả ngắn gọn về nhiệm vụ của event."
-          class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-        ></textarea>
-      </label>
-      <div class="mt-4 grid gap-4 md:grid-cols-2">
-        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Success Criteria
-          <textarea
-            rows="3"
-            placeholder="Ghi từng tiêu chí trên một dòng."
-            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-          ></textarea>
-        </label>
-        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          NPC xuất hiện
-          <input
-            type="text"
-            placeholder="ví dụ: P2: Người giám sát, P3: Nhân sự hỗ trợ"
-            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-          />
-        </label>
-      </div>
-      <div class="mt-4 grid gap-4 md:grid-cols-3">
-        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Timeout (lượt)
-          <input
-            type="number"
-            min="0"
-            placeholder="ví dụ: 3"
-            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-          />
-        </label>
-        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          On Success
-          <input
-            type="text"
-            placeholder="ví dụ: CE3"
-            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-          />
-        </label>
-        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          On Fail
-          <input
-            type="text"
-            placeholder="ví dụ: CE2_RETRY"
-            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-          />
-        </label>
-      </div>
-    </div>
-  </template>
-
-  <template id="persona-template">
-    <div data-persona-item class="rounded-2xl border border-slate-100 bg-white/60 p-6 shadow-inner">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <h3 class="text-sm font-semibold text-slate-900">Persona</h3>
-        <button
-          type="button"
-          data-remove-persona
-          class="text-xs font-semibold text-slate-500 transition hover:text-primary-600"
-        >
-          Xóa
-        </button>
-      </div>
-      <div class="mt-4 grid gap-4 md:grid-cols-2">
-        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Persona ID
-          <input
-            type="text"
-            placeholder="ví dụ: P2"
-            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-          />
-        </label>
-        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Tên nhân vật
-          <input
-            type="text"
-            placeholder="ví dụ: Điều phối viên phụ"
-            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-          />
-        </label>
-        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Vai trò
-          <input
-            type="text"
-            placeholder="ví dụ: Hỗ trợ hậu cần"
-            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-          />
-        </label>
-        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Tuổi
-          <input
-            type="number"
-            min="0"
-            placeholder="ví dụ: 35"
-            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-          />
-        </label>
-        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Giới tính
-          <input
-            type="text"
-            placeholder="ví dụ: Nam/Nữ/Khác"
-            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-          />
-        </label>
-      </div>
-      <label class="mt-4 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-        Lý lịch / hoàn cảnh
-        <textarea
-          rows="3"
-          placeholder="ví dụ: Kinh nghiệm liên quan, bối cảnh làm việc."
-          class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-        ></textarea>
-      </label>
-      <label class="mt-4 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-        Tính cách
-        <textarea
-          rows="3"
-          placeholder="ví dụ: Tập trung, nhiệt tình, cần hướng dẫn."
-          class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-        ></textarea>
-      </label>
-      <div class="mt-4 grid gap-4 md:grid-cols-2">
-        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Mục tiêu
-          <textarea
-            rows="3"
-            placeholder="ví dụ: Hỗ trợ nhóm chính, đảm bảo quy trình chuẩn."
-            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-          ></textarea>
-        </label>
-        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Speech pattern
-          <textarea
-            rows="3"
-            placeholder="ví dụ: Ngắn gọn, nhiều câu hỏi xác nhận."
-            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-          ></textarea>
-        </label>
-      </div>
-      <div class="mt-4 grid gap-4 md:grid-cols-3">
-        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Emotion ban đầu
-          <input
-            type="text"
-            placeholder="ví dụ: Lo lắng"
-            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-          />
-        </label>
-        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Emotion kết thúc
-          <input
-            type="text"
-            placeholder="ví dụ: An tâm"
-            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-          />
-        </label>
-        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Voice tags
-          <input
-            type="text"
-            placeholder="ví dụ: supporter, curious"
-            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-          />
-        </label>
-      </div>
-      <label class="mt-4 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-        Emotion trong quá trình
-        <textarea
-          rows="3"
-          placeholder="ví dụ: căng thẳng&#10;hợp tác&#10;nhẹ nhõm"
-          class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
-        ></textarea>
-      </label>
-    </div>
-  </template>
-
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const tabButtons = document.querySelectorAll("[data-tab]");
-      const panels = document.querySelectorAll("[data-panel]");
-      const ACTIVE_BUTTON_CLASSES = [
-        "bg-primary-600",
-        "text-white",
-        "border-primary-600",
-        "hover:bg-primary-500",
-        "hover:text-white",
-        "hover:border-primary-600",
-        "shadow-md"
-      ];
-      const INACTIVE_BUTTON_CLASSES = [
-        "bg-white",
-        "text-primary-600",
-        "hover:text-primary-700",
-        "hover:border-primary-300"
-      ];
-
-      const activateTab = (tabId) => {
-        tabButtons.forEach((button) => {
-          const isActive = button.dataset.tab === tabId;
-          if (isActive) {
-            button.classList.add(...ACTIVE_BUTTON_CLASSES);
-            button.classList.remove(...INACTIVE_BUTTON_CLASSES);
-            button.setAttribute("aria-selected", "true");
-            button.setAttribute("tabindex", "0");
-          } else {
-            button.classList.remove(...ACTIVE_BUTTON_CLASSES);
-            button.classList.add(...INACTIVE_BUTTON_CLASSES);
-            button.setAttribute("aria-selected", "false");
-            button.setAttribute("tabindex", "-1");
-          }
-        });
-
-        panels.forEach((panel) => {
-          const isActive = panel.dataset.panel === tabId;
-          panel.classList.toggle("hidden", !isActive);
-          panel.classList.toggle("is-active", isActive);
-        });
-
-      };
-
-      tabButtons.forEach((button) => {
-        button.addEventListener("click", () => activateTab(button.dataset.tab));
-      });
-
-      activateTab("skeleton");
-
-      const API_ENDPOINT = "/api/cases";
-      const saveCaseButton = document.getElementById("save-case-button");
-
-      const ensureToastRoot = () => {
-        let root = document.getElementById("toast-root");
-        if (!root) {
-          root = document.createElement("div");
-          root.id = "toast-root";
-          root.className = "fixed top-4 right-4 z-50 flex flex-col gap-3";
-          document.body.appendChild(root);
-        }
-        return root;
-      };
-
-      const showNotification = (message, type = "success") => {
-        const root = ensureToastRoot();
-        const toast = document.createElement("div");
-        const baseClasses = "rounded-xl px-4 py-3 text-sm font-semibold shadow-lg backdrop-blur";
-        const palette =
-          type === "error"
-            ? "bg-red-600/90 text-white"
-            : type === "info"
-            ? "bg-slate-800/90 text-white"
-            : "bg-emerald-600/90 text-white";
-        toast.className = `${baseClasses} ${palette}`;
-        toast.textContent = message;
-        root.appendChild(toast);
-        setTimeout(() => {
-          toast.classList.add("opacity-0", "transition");
-          setTimeout(() => {
-            toast.remove();
-            if (!root.children.length) {
-              root.remove();
-            }
-          }, 200);
-        }, 4000);
-      };
-
-      const slugify = (value, fallback) => {
-        if (!value) {
-          return fallback;
-        }
-        return value
-          .toLowerCase()
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .replace(/[^a-z0-9]+/g, "_")
-          .replace(/^_|_$/g, "") || fallback;
-      };
-
-      const parseLines = (raw) => {
-        if (!raw) return [];
-        return raw
-          .split(/\r?\n/)
-          .map((item) => item.trim())
-          .filter(Boolean);
-      };
-
-      const parseNPC = (raw) => {
-        if (!raw) return [];
-        return raw
-          .split(/[\n,]+/)
-          .map((segment) => {
-            const [personaId, ...roleParts] = segment.split(":");
-            const id = (personaId || "").trim();
-            const role = roleParts.join(":").trim();
-            if (!id) return null;
-            return role ? { persona_id: id, role } : { persona_id: id };
-          })
-          .filter(Boolean);
-      };
-
-      const findFieldByLabel = (root, keyword) => {
-        if (!root) return null;
-        const normalizedKeyword = keyword.toLowerCase();
-        const labels = Array.from(root.querySelectorAll("label"));
-        for (const label of labels) {
-          const text = (label.textContent || "").toLowerCase().replace(/\s+/g, " " ).trim();
-          if (text.includes(normalizedKeyword)) {
-            return label.querySelector("input, textarea");
-          }
-        }
-        return null;
-      };
-
-      const extractSkeleton = () => {
-        const skeletonPanel = document.querySelector('[data-panel="skeleton"]');
-        if (!skeletonPanel) {
-          return { case_id: "", title: "", canon_events: [] };
-        }
-        const form = skeletonPanel.querySelector("form");
-        const caseId = (findFieldByLabel(form, "case id")?.value || "").trim();
-        const caseTitle = (findFieldByLabel(form, "tên case")?.value || "").trim();
-
-        const events = Array.from(form.querySelectorAll("[data-event-block]"))
-          .map((block, index) => {
-            const eventId = (findFieldByLabel(block, "mã sự kiện")?.value || "").trim();
-            const title = (findFieldByLabel(block, "tiêu đề")?.value || "").trim();
-            const description = (findFieldByLabel(block, "mô tả chi tiết")?.value || "").trim();
-            const successRaw = findFieldByLabel(block, "success criteria")?.value || "";
-            const npcRaw = (findFieldByLabel(block, "npc")?.value || "").trim();
-            const timeoutRaw = (findFieldByLabel(block, "timeout")?.value || "").trim();
-            const onSuccess = (findFieldByLabel(block, "on success")?.value || "").trim();
-            const onFail = (findFieldByLabel(block, "on fail")?.value || "").trim();
-
-            const hasContent =
-              eventId ||
-              title ||
-              description ||
-              successRaw.trim() ||
-              npcRaw ||
-              timeoutRaw ||
-              onSuccess ||
-              onFail;
-            if (!hasContent) {
-              return null;
-            }
-
-            const timeout = timeoutRaw ? Number.parseInt(timeoutRaw, 10) : null;
-
-            return {
-              id: eventId || `event_${index + 1}`,
-              title,
-              description,
-              success_criteria: parseLines(successRaw),
-              npc_appearance: parseNPC(npcRaw),
-              timeout_turn: Number.isFinite(timeout) ? timeout : null,
-              preconditions: [],
-              on_success: onSuccess || null,
-              on_fail: onFail || null,
-            };
-          })
-          .filter(Boolean);
-
-        return {
-          case_id: caseId,
-          title: caseTitle,
-          canon_events: events,
-        };
-      };
-
-      const extractContext = () => {
-        const contextPanel = document.querySelector('[data-panel="context"]');
-        if (!contextPanel) {
-          return {
-            case_id: "",
-            topic: "",
-            initial_context: {
-              scene: { time: "", weather: "", location: "", noise_level: "" },
-              index_event: { summary: "", current_state: "", who_first_on_scene: "" },
-              available_resources: {},
-              constraints: [],
-              policies_safety_legal: [],
-              handover_target: "",
-              success_end_state: "",
-            },
-          };
-        }
-
-        const form = contextPanel.querySelector("form");
-        const caseId = (findFieldByLabel(form, "case id")?.value || "").trim();
-        const topic = (findFieldByLabel(form, "chủ đề case")?.value || "").trim();
-
-        const scene = {
-          time: (findFieldByLabel(form, "thời gian")?.value || "").trim(),
-          weather: (findFieldByLabel(form, "thời tiết")?.value || "").trim(),
-          location: (findFieldByLabel(form, "vị trí")?.value || "").trim(),
-          noise_level: (findFieldByLabel(form, "mức độ ồn")?.value || "").trim(),
-        };
-
-        const indexEvent = {
-          summary: (findFieldByLabel(form, "tóm tắt sự kiện")?.value || "").trim(),
-          current_state: (findFieldByLabel(form, "tình trạng hiện tại")?.value || "").trim(),
-          who_first_on_scene: (findFieldByLabel(form, "ai tiếp cận đầu tiên")?.value || "").trim(),
-        };
-
-        const resourceBlocks = Array.from(form.querySelectorAll("[data-resource-block]"));
-        const availableResources = {};
-        const resourceMeta = {};
-
-        resourceBlocks.forEach((block, index) => {
-          const name = (findFieldByLabel(block, "tên nhóm")?.value || "").trim();
-          const note = (findFieldByLabel(block, "ghi chú")?.value || "").trim();
-          const items = parseLines(findFieldByLabel(block, "danh sách nguồn lực")?.value || "");
-          if (!name && !note && !items.length) {
-            return;
-          }
-          const key = slugify(name, `resource_${index + 1}`);
-          const resources = [...items];
-          if (note) {
-            resources.push(`NOTE: ${note}`);
-          }
-          availableResources[key] = resources;
-          resourceMeta[key] = {
-            label: name || `Nhóm ${index + 1}`,
-            note: note || "",
-          };
-        });
-
-        const constraints = parseLines(findFieldByLabel(form, "ràng buộc hiện trường")?.value || "");
-        const policies = parseLines(findFieldByLabel(form, "chính sách")?.value || "");
-        const handoverTarget = (findFieldByLabel(form, "đơn vị bàn giao")?.value || "").trim();
-        const successEndState = (findFieldByLabel(form, "trạng thái thành công cuối cùng")?.value || "").trim();
-
-        const initialContext = {
-          scene,
-          index_event: indexEvent,
-          available_resources: availableResources,
-          constraints,
-          policies_safety_legal: policies,
-          handover_target: handoverTarget,
-          success_end_state: successEndState,
-        };
-
-        if (Object.keys(resourceMeta).length) {
-          initialContext.available_resources_meta = resourceMeta;
-        }
-
-        return {
-          case_id: caseId,
-          topic,
-          initial_context: initialContext,
-        };
-      };
-
-      const extractPersonas = () => {
-        const personasPanel = document.querySelector('[data-panel="personas"]');
-        if (!personasPanel) {
-          return { case_id: "", personas: [] };
-        }
-
-        const form = personasPanel.querySelector("form");
-        const caseId = (findFieldByLabel(form, "case id")?.value || "").trim();
-
-        const personas = Array.from(form.querySelectorAll("[data-persona-item]"))
-          .map((item, index) => {
-            const id = (findFieldByLabel(item, "persona id")?.value || "").trim();
-            const name = (findFieldByLabel(item, "tên nhân vật")?.value || "").trim();
-            const role = (findFieldByLabel(item, "vai trò")?.value || "").trim();
-            const ageRaw = (findFieldByLabel(item, "tuổi")?.value || "").trim();
-            const gender = (findFieldByLabel(item, "giới tính")?.value || "").trim();
-            const background = (findFieldByLabel(item, "lý lịch")?.value || "").trim();
-            const personality = (findFieldByLabel(item, "tính cách")?.value || "").trim();
-            const goal = (findFieldByLabel(item, "mục tiêu")?.value || "").trim();
-            const speechPattern = (findFieldByLabel(item, "speech pattern")?.value || "").trim();
-            const emotionInit = (findFieldByLabel(item, "emotion ban đầu")?.value || "").trim();
-            const emotionEnd = (findFieldByLabel(item, "emotion kết thúc")?.value || "").trim();
-            const voiceTagsRaw = (findFieldByLabel(item, "voice tags")?.value || "").trim();
-            const emotionDuring = parseLines(
-              findFieldByLabel(item, "emotion trong quá trình")?.value || ""
-            );
-
-            const hasContent =
-              id ||
-              name ||
-              role ||
-              ageRaw ||
-              gender ||
-              background ||
-              personality ||
-              goal ||
-              speechPattern ||
-              emotionInit ||
-              emotionEnd ||
-              voiceTagsRaw ||
-              emotionDuring.length;
-            if (!hasContent) {
-              return null;
-            }
-
-            const age = ageRaw ? Number.parseInt(ageRaw, 10) : null;
-            const voiceTags = voiceTagsRaw
-              ? voiceTagsRaw
-                  .split(/[;,]/)
-                  .map((tag) => tag.trim())
-                  .filter(Boolean)
-              : [];
-
-            return {
-              id: id || `persona_${index + 1}`,
-              name,
-              role,
-              age: Number.isFinite(age) ? age : null,
-              gender,
-              background,
-              personality,
-              goal,
-              speech_pattern: speechPattern,
-              emotion_init: emotionInit,
-              emotion_during: emotionDuring,
-              emotion_end: emotionEnd,
-              voice_tags: voiceTags,
-            };
-          })
-          .filter(Boolean);
-
-        return {
-          case_id: caseId,
-          personas,
-        };
-      };
-
-      const buildCasePayload = () => {
-        const skeleton = extractSkeleton();
-        const context = extractContext();
-        const personasPayload = extractPersonas();
-
-        const resolvedCaseId =
-          skeleton.case_id || context.case_id || personasPayload.case_id;
-
-        if (!resolvedCaseId) {
-          throw new Error("Vui lòng nhập Case ID ở ít nhất một tab trước khi lưu.");
-        }
-
-        skeleton.case_id = skeleton.case_id || resolvedCaseId;
-        context.case_id = context.case_id || resolvedCaseId;
-        personasPayload.case_id = personasPayload.case_id || resolvedCaseId;
-
-        return {
-          case_id: resolvedCaseId,
-          context,
-          personas: {
-            case_id: personasPayload.case_id,
-            personas: personasPayload.personas,
-          },
-          skeleton,
-        };
-      };
-
-      const getValidationState = () => {
-        const skeleton = extractSkeleton();
-        const context = extractContext();
-        const personasPayload = extractPersonas();
-
-        const issues = {
-          global: [],
-          skeleton: [],
-          context: [],
-          personas: [],
-        };
-
-        const resolvedCaseId =
-          skeleton.case_id || context.case_id || personasPayload.case_id;
-
-        if (!resolvedCaseId) {
-          issues.global.push("Case ID");
-        }
-
-        if (!skeleton.title) {
-          issues.skeleton.push("Tên case");
-        }
-        if (!skeleton.canon_events.length) {
-          issues.skeleton.push("Ít nhất 1 Canon Event");
-        } else {
-          skeleton.canon_events.forEach((event, index) => {
-            if (!event.title) {
-              issues.skeleton.push(`Canon Event ${index + 1}: tiêu đề`);
-            }
-            if (!event.description) {
-              issues.skeleton.push(`Canon Event ${index + 1}: mô tả`);
-            }
-          });
-        }
-
-        const initialContext = context.initial_context || {};
-        const scene = initialContext.scene || {};
-        const indexEvent = initialContext.index_event || {};
-
-        if (!context.topic) {
-          issues.context.push("Chủ đề case");
-        }
-        if (!scene.time) {
-          issues.context.push("Thời gian trong Scene");
-        }
-        if (!scene.location) {
-          issues.context.push("Địa điểm trong Scene");
-        }
-        if (!indexEvent.summary) {
-          issues.context.push("Tóm tắt sự kiện ban đầu");
-        }
-        if (!indexEvent.who_first_on_scene) {
-          issues.context.push("Ai tiếp cận đầu tiên");
-        }
-
-        if (!personasPayload.personas.length) {
-          issues.personas.push("Ít nhất 1 persona");
-        } else {
-          personasPayload.personas.forEach((persona, index) => {
-            if (!persona.name) {
-              issues.personas.push(`Persona ${index + 1}: tên`);
-            }
-            if (!persona.role) {
-              issues.personas.push(`Persona ${index + 1}: vai trò`);
-            }
-          });
-        }
-
-        const isComplete =
-          !issues.global.length &&
-          !issues.skeleton.length &&
-          !issues.context.length &&
-          !issues.personas.length;
-
-        return {
-          resolvedCaseId,
-          skeleton,
-          context,
-          personasPayload,
-          issues,
-          isComplete,
-        };
-      };
-
-      const updateSaveButtonState = () => {
-        if (!saveCaseButton) {
-          return;
-        }
-        const { isComplete } = getValidationState();
-        saveCaseButton.disabled = !isComplete;
-        saveCaseButton.classList.toggle("cursor-not-allowed", !isComplete);
-        saveCaseButton.classList.toggle("bg-white", !isComplete);
-        saveCaseButton.classList.toggle("text-slate-400", !isComplete);
-        saveCaseButton.classList.toggle("border-slate-200", !isComplete);
-        saveCaseButton.classList.toggle("bg-primary-600", isComplete);
-        saveCaseButton.classList.toggle("text-white", isComplete);
-        saveCaseButton.classList.toggle("border-transparent", isComplete);
-        saveCaseButton.classList.toggle("hover:bg-primary-500", isComplete);
-      };
-
-      const formatMissingMessages = (issues) => {
-        const parts = [];
-        if (issues.global.length) {
-          parts.push(`Chung: ${issues.global.join(", ")}`);
-        }
-        if (issues.skeleton.length) {
-          parts.push(`Skeleton: ${issues.skeleton.join(", ")}`);
-        }
-        if (issues.context.length) {
-          parts.push(`Context: ${issues.context.join(", ")}`);
-        }
-        if (issues.personas.length) {
-          parts.push(`Personas: ${issues.personas.join(", ")}`);
-        }
-        return parts.join(" | ");
-      };
-
-      const resetAllForms = () => {
-        document.querySelectorAll("form[data-prevent-submit]").forEach((form) => {
-          form.reset();
-        });
-
-        const cleanupContainer = (selector, itemSelector) => {
-          const container = document.querySelector(selector);
-          if (!container) return;
-          const items = Array.from(container.querySelectorAll(itemSelector));
-          items.forEach((item, index) => {
-            if (index === 0) {
-              item.querySelectorAll("input, textarea").forEach((field) => {
-                field.value = "";
-              });
-            } else {
-              item.remove();
-            }
-          });
-        };
-
-        cleanupContainer("[data-resource-list]", "[data-resource-block]");
-        cleanupContainer("[data-skeleton-events]", "[data-event-block]");
-        cleanupContainer("[data-persona-list]", "[data-persona-item]");
-      };
-
-      const toggleButtonState = (button, isLoading) => {
-        if (!button) return;
-        if (isLoading) {
-          button.dataset.originalText = button.textContent || "";
-          button.disabled = true;
-          button.textContent = "Đang lưu...";
-          button.classList.add("opacity-60", "cursor-wait");
-        } else {
-          button.disabled = false;
-          if (button.dataset.originalText) {
-            button.textContent = button.dataset.originalText;
-            delete button.dataset.originalText;
-          }
-          button.classList.remove("opacity-60", "cursor-wait");
-        }
-      };
-
-      const handleCaseSave = async () => {
-        if (!saveCaseButton) {
-          return;
-        }
-
-        const validation = getValidationState();
-        if (!validation.isComplete) {
-          const message = formatMissingMessages(validation.issues);
-          showNotification(
-            message
-              ? `Vui lòng bổ sung thông tin trước khi lưu: ${message}`
-              : "Vui lòng hoàn thiện cả 3 biểu mẫu trước khi lưu.",
-            "error"
-          );
-          return;
-        }
-
-        toggleButtonState(saveCaseButton, true);
-
-        try {
-          const payload = buildCasePayload();
-          if (!payload.skeleton.canon_events.length) {
-            throw new Error("Vui lòng nhập ít nhất một Canon Event.");
-          }
-          if (!payload.personas.personas.length) {
-            throw new Error("Vui lòng nhập ít nhất một Persona.");
-          }
-
-          showNotification("Đang gửi dữ liệu lên máy chủ...", "info");
-          const response = await fetch(API_ENDPOINT, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            credentials: "same-origin",
-            body: JSON.stringify(payload),
-          });
-
-          const contentType = response.headers.get("content-type") || "";
-          const responseData = contentType.includes("application/json") ? await response.json() : null;
-
-          if (!response.ok) {
-            const detail =
-              (responseData && (responseData.detail || responseData.message)) ||
-              "Không thể lưu case. Vui lòng thử lại.";
-            throw new Error(detail);
-          }
-
-          const payloadInfo = {
-            case_id: responseData?.case_id ?? payload.case_id,
-            personas_count:
-              typeof responseData?.personas_count === "number"
-                ? responseData.personas_count
-                : payload.personas.personas.length,
-          };
-
-          showNotification(
-            `Đã lưu case '${payloadInfo.case_id}' thành công (${payloadInfo.personas_count} personas).`
-          );
-          resetAllForms();
-        } catch (error) {
-          console.error(error);
-          showNotification(error.message || "Có lỗi xảy ra khi lưu case.", "error");
-        } finally {
-          toggleButtonState(saveCaseButton, false);
-          updateSaveButtonState();
-        }
-      };
-
-      document.addEventListener("input", () => {
-        updateSaveButtonState();
-      });
-
-      document.querySelectorAll("form[data-prevent-submit]").forEach((form) => {
-        form.addEventListener("submit", (event) => {
-          event.preventDefault();
-          handleCaseSave();
-        });
-        form.addEventListener("reset", () => {
-          setTimeout(() => {
-            updateSaveButtonState();
-          }, 0);
-        });
-      });
-
-      if (saveCaseButton) {
-        saveCaseButton.addEventListener("click", handleCaseSave);
-      }
-
-      document.querySelectorAll("[data-next-tab]").forEach((button) => {
-        button.addEventListener("click", () => {
-          const target = button.dataset.nextTab;
-          if (target) {
-            activateTab(target);
-          }
-        });
-      });
-
-      document.querySelectorAll("[data-prev-tab]").forEach((button) => {
-        button.addEventListener("click", () => {
-          const target = button.dataset.prevTab;
-          if (target) {
-            activateTab(target);
-          }
-        });
-      });
-
-      updateSaveButtonState();
-
-      const resourceList = document.querySelector("[data-resource-list]");
-      const resourceTemplate = document.getElementById("resource-template");
-
-      const initResourceBlock = (block) => {
-        const removeBtn = block.querySelector("[data-remove-resource]");
-        if (!removeBtn) {
-          return;
-        }
-
-        removeBtn.addEventListener("click", () => {
-          if (!resourceList) return;
-          if (resourceList.children.length === 1) {
-            block.querySelectorAll("input, textarea").forEach((field) => {
-              field.value = "";
-            });
-            updateSaveButtonState();
-            return;
-          }
-          block.remove();
-          updateSaveButtonState();
-        });
-      };
-
-      if (resourceList) {
-        resourceList.querySelectorAll("[data-resource-block]").forEach(initResourceBlock);
-      }
-
-      const addResourceBtn = document.querySelector("[data-add-resource]");
-      if (addResourceBtn && resourceTemplate && resourceList) {
-        addResourceBtn.addEventListener("click", () => {
-          const clone = resourceTemplate.content.firstElementChild.cloneNode(true);
-          resourceList.appendChild(clone);
-          initResourceBlock(clone);
-          updateSaveButtonState();
-        });
-      }
-
-      const skeletonEventsContainer = document.querySelector("[data-skeleton-events]");
-      const eventTemplate = document.getElementById("skeleton-event-template");
-
-      const initEventBlock = (block) => {
-        const removeBtn = block.querySelector("[data-remove-event]");
-        if (removeBtn) {
-          removeBtn.addEventListener("click", () => {
-            if (!skeletonEventsContainer) return;
-            if (skeletonEventsContainer.children.length === 1) {
-              block.querySelectorAll("input, textarea").forEach((field) => {
-                field.value = "";
-              });
-              updateSaveButtonState();
-              return;
-            }
-            block.remove();
-            updateSaveButtonState();
-          });
-        }
-      };
-
-      if (skeletonEventsContainer) {
-        skeletonEventsContainer.querySelectorAll("[data-event-block]").forEach(initEventBlock);
-      }
-
-      const addEventBtn = document.querySelector("[data-add-event]");
-      if (addEventBtn && eventTemplate && skeletonEventsContainer) {
-        addEventBtn.addEventListener("click", () => {
-          const clone = eventTemplate.content.firstElementChild.cloneNode(true);
-          skeletonEventsContainer.appendChild(clone);
-          initEventBlock(clone);
-          updateSaveButtonState();
-        });
-      }
-
-      const personaList = document.querySelector("[data-persona-list]");
-      const personaTemplate = document.getElementById("persona-template");
-
-      const initPersonaItem = (item) => {
-        const removeBtn = item.querySelector("[data-remove-persona]");
-        if (removeBtn) {
-          removeBtn.addEventListener("click", () => {
-            if (!personaList) return;
-            if (personaList.children.length === 1) {
-              item.querySelectorAll("input, textarea").forEach((field) => {
-                field.value = "";
-              });
-              updateSaveButtonState();
-              return;
-            }
-            item.remove();
-            updateSaveButtonState();
-          });
-        }
-      };
-
-      if (personaList) {
-        personaList.querySelectorAll("[data-persona-item]").forEach(initPersonaItem);
-      }
-
-      const addPersonaBtn = document.querySelector("[data-add-persona]");
-      if (addPersonaBtn && personaTemplate && personaList) {
-        addPersonaBtn.addEventListener("click", () => {
-          const clone = personaTemplate.content.firstElementChild.cloneNode(true);
-          personaList.appendChild(clone);
-          initPersonaItem(clone);
-          updateSaveButtonState();
-        });
-      }
-    });
-  </script>
+  </div>
+  
+  <script src="/static/nhap-case.js" defer></script>
 </body>
 </html>

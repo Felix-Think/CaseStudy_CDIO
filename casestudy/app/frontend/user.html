@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <title>User Workspace • CaseStudy</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body class="app-body">
+  <div class="app-bg"></div>
+
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="app-header__inner">
+        <div class="brand">
+          <div class="brand__icon">TAT</div>
+          <div class="brand__text">
+            <span class="brand__label">User</span>
+            <h1 class="brand__title">Workspace của bạn</h1>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <div class="login-shell">
+        <section class="card login-card">
+          <header class="login-card__head">
+            <p class="eyebrow eyebrow--primary">Điểm truy cập</p>
+            <h3 class="login-card__title">Chọn thao tác bạn cần</h3>
+            <p class="login-card__subtitle">3 thẻ dưới đây dẫn tới các công việc thường dùng.</p>
+          </header>
+
+          <div class="card__list" style="list-style:none;padding:0;display:grid;gap:16px;">
+            <a class="card info-card" href="/case-list" style="text-decoration:none;">
+              <span class="eyebrow eyebrow--primary">Case realtime</span>
+              <h3 class="info-card__title">Danh sách Case</h3>
+              <p class="info-card__body">Đi tới bảng tổng hợp case đang hoạt động, chọn nhanh để mở Chat Frame.</p>
+            </a>
+
+            <a class="card info-card" href="/quan-ly-case" style="text-decoration:none;">
+              <span class="eyebrow eyebrow--primary">Quản lý kho casestudy</span>
+              <h3 class="info-card__title">Quản lý case</h3>
+              <p class="info-card__body">Tạo, chỉnh sửa, xoá Skeleton/Context/Personas.</p>
+            </a>
+
+            <article class="card info-card">
+              <span class="eyebrow eyebrow--primary">Demo</span>
+              <h3 class="info-card__title">Lịch sử chấm điểm session</h3>
+              <p class="info-card__body">Khu vực demo (đang để trống) để sau này hiển thị lịch sử chấm điểm các session trước.</p>
+              <div class="case-card" style="margin-top:12px;">
+                <p class="case-desc">Chưa có dữ liệu lịch sử. Khi hoàn thành các session, dữ liệu sẽ hiển thị tại đây.</p>
+              </div>
+            </article>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

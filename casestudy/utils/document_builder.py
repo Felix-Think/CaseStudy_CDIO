@@ -5,7 +5,7 @@ from typing import Dict, Iterable, List
 from langchain.docstore.document import Document
 
 
-def build_semantic_documents(
+def build_documents(
     context: Dict,
     personas: Iterable[Dict],
     skeleton: Dict,
@@ -155,36 +155,64 @@ def _build_policy_documents(context: Dict) -> List[Document]:
         )
     return documents
 
-
 def _build_skeleton_documents(skeleton: Dict) -> List[Document]:
     documents: List[Document] = []
     if not skeleton:
         return documents
 
     case_id = skeleton.get("case_id") or "unknown_case"
-    for event in skeleton.get("canon_events") or []:
+    case_title = skeleton.get("title")
+    for idx, event in enumerate(skeleton.get("canon_events") or [], start=1):
+        if not event:
+            continue
+
         success_criteria = event.get("success_criteria") or []
+        required_actions = event.get("required_actions") or []
+        preconditions = event.get("preconditions") or []
         npc = event.get("npc_appearance") or []
+
         npc_rendered = ", ".join(
-            f"{item.get('persona_id')} ({item.get('role')})".strip()
-            for item in npc
-            if item
-        )
-        page_content = (
-            f"Canon Event {event.get('id', 'N/A')}: {event.get('title', 'Không tiêu đề')}. "
-            f"Mô tả: {event.get('description', 'Không mô tả')}. "
-            f"Tiêu chí thành công: {', '.join(success_criteria) if success_criteria else 'Chưa rõ'}. "
-            f"NPC xuất hiện: {npc_rendered or 'Chưa rõ'}. "
-            f"Timeout cho phép: {event.get('timeout_turn', 'không rõ')} lượt."
-        )
+            f"{npc_item.get('persona_id', 'NPC')} ({npc_item.get('role', 'vai trò chưa rõ')})"
+            if npc_item
+            else ""
+            for npc_item in npc
+        ).strip(", ")
+
+        transitions = []
+        if event.get("on_success"):
+            transitions.append(f"thành công → {event['on_success']}")
+        if event.get("on_fail"):
+            transitions.append(f"thất bại → {event['on_fail']}")
+
+        segments = [
+            f"Canon Event {event.get('id', idx)}: {event.get('title', 'Không tiêu đề')}.",
+            f"Mô tả: {event.get('description', 'Không mô tả')}.",
+            f"Tiêu chí thành công: {', '.join([item['description'] for item in success_criteria]) if success_criteria else 'Chưa rõ'}."
+        ]
+        if required_actions:
+            segments.append(f"Hành động bắt buộc: {', '.join(required_actions)}.")
+        if preconditions:
+            segments.append(f"Tiền đề: {', '.join(preconditions)}.")
+        if npc_rendered:
+            segments.append(f"NPC xuất hiện: {npc_rendered}.")
+        if event.get("timeout_turn"):
+            segments.append(f"Timeout cho phép: {event['timeout_turn']} lượt.")
+        if transitions:
+            segments.append(f"Chuyển trạng thái: {', '.join(transitions)}.")
+
+        if case_title:
+            segments.insert(0, f"Case {case_title} ({case_id}).")
+
         documents.append(
             Document(
-                page_content=page_content,
+                page_content=" ".join(segments),
                 metadata={
                     "type": "canon_event",
                     "case_id": case_id,
                     "event_id": event.get("id"),
+                    "order": idx,
                 },
             )
         )
+
     return documents
