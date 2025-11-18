@@ -25,39 +25,11 @@ class AgentSessionCreateRequest(BaseModel):
         description="Có reset trạng thái runtime trước khi chạy lượt đầu hay không.",
     )
 
-class TTSSegment(BaseModel):
-    speaker: Optional[str] = Field(default=None, description="Tên nhân vật đang nói.")
-    persona_id: Optional[str] = Field(default=None, description="Định danh persona nếu có.")
-    text: str = Field(..., description="Nội dung thoại đã dùng để tổng hợp giọng.")
-    voice: Optional[str] = Field(default=None, description="Voice preset được chọn cho đoạn thoại.")
-    audio: Optional[str] = Field(default=None, description="Chuỗi base64 audio cho đoạn thoại (nếu có).")
-    mime_type: Optional[str] = Field(default=None, description="MIME type cho audio của đoạn thoại.")
-    model: Optional[str] = Field(default=None, description="Model đã dùng để tạo đoạn thoại.")
-
 
 class AgentSessionCreateResponse(BaseModel):
     session_id: str
     case_id: str
     state: Dict[str, Any]
-    tts_audio: Optional[str] = Field(
-        default=None, description="Base64-encoded facilitator reply synthesized via TTS."
-    )
-    tts_mime_type: Optional[str] = Field(
-        default=None, description="MIME type for the tts_audio payload (e.g., audio/wav)."
-    )
-    tts_model: Optional[str] = Field(
-        default=None, description="OpenAI model used to synthesize the reply."
-    )
-    tts_voice: Optional[str] = Field(
-        default=None, description="Voice preset used for the synthesized reply."
-    )
-    tts_text: Optional[str] = Field(
-        default=None, description="Plain text that was passed to the TTS engine."
-    )
-    tts_segments: List[TTSSegment] = Field(
-        default_factory=list,
-        description="Danh sách các đoạn thoại đã tổng hợp (mỗi nhân vật một giọng).",
-    )
 
 
 class AgentTurnRequest(BaseModel):
@@ -80,25 +52,6 @@ class AgentTurnResponse(BaseModel):
     session_id: str
     case_id: str
     state: Dict[str, Any]
-    tts_audio: Optional[str] = Field(
-        default=None, description="Base64-encoded facilitator reply synthesized via TTS."
-    )
-    tts_mime_type: Optional[str] = Field(
-        default=None, description="MIME type for the tts_audio payload (e.g., audio/wav)."
-    )
-    tts_model: Optional[str] = Field(
-        default=None, description="OpenAI model used to synthesize the reply."
-    )
-    tts_voice: Optional[str] = Field(
-        default=None, description="Voice preset used for the synthesized reply."
-    )
-    tts_text: Optional[str] = Field(
-        default=None, description="Plain text that was passed to the TTS engine."
-    )
-    tts_segments: List[TTSSegment] = Field(
-        default_factory=list,
-        description="Danh sách các đoạn thoại đã tổng hợp (mỗi nhân vật một giọng).",
-    )
 
 class AgentTurnLog(BaseModel):
     turn_index: int = Field(..., description="Thứ tự lượt trong session.")

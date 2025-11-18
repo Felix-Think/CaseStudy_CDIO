@@ -18,8 +18,6 @@ from api_casestudy.schemas import (
     AgentTurnRequest,
     AgentTurnResponse,
 )
-from api_casestudy.services.tts_engine import TTSEngine, TTSPayload
-from api_casestudy.services.voice_selector import VoiceSelector
 from api_casestudy.services.state_repository import ConversationStateRepository
 
 
@@ -56,90 +54,6 @@ def _configure_semantic_module(case_id: str) -> None:
     semantic_utils.configure_paths(case_id)
 
 
-def _is_user_speaker(label: Optional[str]) -> bool:
-    if not label:
-        return False
-    normalized = label.strip().lower()
-    if not normalized:
-        return False
-    try:
-        ascii_normalized = normalized.encode("ascii", "ignore").decode("ascii")
-    except Exception:
-        ascii_normalized = normalized
-    markers = (
-        "user",
-        "nguoi hoc",
-        "hoc vien",
-        "learner",
-        "ban",
-        "hoc sinh",
-    )
-    for candidate in (normalized, ascii_normalized):
-        if any(marker in candidate for marker in markers if marker):
-            return True
-    return False
-
-@dataclass
-class DialogueLine:
-    speaker: str
-    text: str
-    persona_id: Optional[str] = None
-
-
-def _render_dialogue_lines(entries: list[dict]) -> list[DialogueLine]:
-    lines: list[DialogueLine] = []
-    for entry in entries:
-        if not isinstance(entry, dict):
-            continue
-        speaker = (
-            entry.get("speaker")
-            or entry.get("persona")
-            or entry.get("role")
-            or "Nhân vật"
-        )
-        if _is_user_speaker(speaker):
-            continue
-        content = (
-            entry.get("content")
-            or entry.get("text")
-            or entry.get("message")
-            or ""
-        ).strip()
-        if not content:
-            continue
-        persona_id = (
-            entry.get("persona_id")
-            or entry.get("personaId")
-            or entry.get("id")
-            or None
-        )
-        lines.append(DialogueLine(speaker=speaker, text=content, persona_id=persona_id))
-    return lines
-
-
-def _extract_dialogue_lines(state: RuntimeState) -> list[DialogueLine]:
-    summary_dialogue = state.event_summary.get("_last_persona_dialogue") or []
-    lines = _render_dialogue_lines(summary_dialogue)
-    if lines:
-        return lines
-
-    history = state.dialogue_history or []
-    if history:
-        recent = history[-6:]
-        lines = _render_dialogue_lines(recent)
-        if lines:
-            return lines
-
-    return []
-
-
-def _format_dialogue_text(lines: list[DialogueLine]) -> Optional[str]:
-    if not lines:
-        return None
-    formatted = " ".join(f"{line.speaker}: {line.text}" for line in lines)
-    return formatted or None
-
-
 @dataclass
 class AgentSession:
     session_id: str
@@ -149,23 +63,11 @@ class AgentSession:
     state: RuntimeState
     state_store: _InMemoryStateStore
 
-    def to_response(
-        self,
-        *,
-        tts_payload: Optional[TTSPayload] = None,
-        tts_segments: Optional[list[dict]] = None,
-        tts_text: Optional[str] = None,
-    ) -> AgentSessionCreateResponse:
+    def to_response(self) -> AgentSessionCreateResponse:
         return AgentSessionCreateResponse(
             session_id=self.session_id,
             case_id=self.case_id,
             state=self.state.to_serializable(),
-            tts_audio=tts_payload.audio_b64 if tts_payload else None,
-            tts_mime_type=tts_payload.mime_type if tts_payload else None,
-            tts_model=tts_payload.model if tts_payload else None,
-            tts_voice=tts_payload.voice if tts_payload else None,
-            tts_text=tts_text or (tts_payload.text if tts_payload else None),
-            tts_segments=tts_segments or [],
         )
 
     def run_turn(self, *, user_action: Optional[str] = None, config: Optional[Dict] = None) -> RuntimeState:
@@ -186,9 +88,6 @@ class AgentService:
 
     def __init__(self, state_repo: Optional[ConversationStateRepository] = None) -> None:
         self._sessions: Dict[str, AgentSession] = {}
-        self._tts_engine = TTSEngine.from_env()
-        default_voice = self._tts_engine.voice if self._tts_engine else None
-        self._voice_selector = VoiceSelector.from_env(default_voice=default_voice)
         try:
             self._state_repo: Optional[ConversationStateRepository] = (
                 state_repo or ConversationStateRepository()
@@ -234,41 +133,6 @@ class AgentService:
                 state=state,
                 metadata=metadata,
             )
-
-    def _tts_enabled(self) -> bool:
-        return bool(self._tts_engine and getattr(self._tts_engine, "enabled", False))
-
-    def _build_tts_segments(
-        self,
-        lines: list[DialogueLine],
-    ) -> tuple[Optional[TTSPayload], list[dict], Optional[str]]:
-        text_fallback = _format_dialogue_text(lines)
-        segments: list[dict] = []
-        primary_payload: Optional[TTSPayload] = None
-        if not lines:
-            return None, segments, text_fallback
-
-        enabled = self._tts_enabled()
-        for line in lines:
-            voice = self._voice_selector.pick(line.persona_id, line.speaker)
-            payload: Optional[TTSPayload] = None
-            if enabled and self._tts_engine:
-                payload = self._tts_engine.synthesize(line.text, voice=voice)
-            if payload and not primary_payload:
-                primary_payload = payload
-            segments.append(
-                {
-                    "speaker": line.speaker,
-                    "persona_id": line.persona_id,
-                    "text": line.text,
-                    "voice": voice,
-                    "audio": payload.audio_b64 if payload else None,
-                    "mime_type": payload.mime_type if payload else None,
-                    "model": payload.model if payload else None,
-                }
-            )
-        return primary_payload, segments, text_fallback
-        
 
     def create_session(self, payload: AgentSessionCreateRequest) -> AgentSessionCreateResponse:
         session_id = uuid.uuid4().hex
@@ -332,14 +196,7 @@ class AgentService:
             state_store=state_store,
         )
         self._sessions[session_id] = session
-        dialogue_lines = _extract_dialogue_lines(result_state)
-        tts_payload, tts_segments, tts_text = self._build_tts_segments(dialogue_lines)
-        final_text = tts_text or result_state.ai_reply
-        return session.to_response(
-            tts_payload=tts_payload,
-            tts_segments=tts_segments,
-            tts_text=final_text,
-        )
+        return session.to_response()
 
     def send_turn(self, payload: AgentTurnRequest) -> AgentTurnResponse:
         session = self._sessions.get(payload.session_id)
@@ -354,9 +211,6 @@ class AgentService:
             config["start_event"] = payload.start_event
 
         state = session.run_turn(user_action=payload.user_input, config=config)
-        dialogue_lines = _extract_dialogue_lines(state)
-        tts_payload, tts_segments, tts_text = self._build_tts_segments(dialogue_lines)
-        final_text = tts_text or state.ai_reply
         self._persist_state(
             session_id=session.session_id,
             case_id=session.case_id,
@@ -367,12 +221,6 @@ class AgentService:
             session_id=session.session_id,
             case_id=session.case_id,
             state=state.to_serializable(),
-            tts_audio=tts_payload.audio_b64 if tts_payload else None,
-            tts_mime_type=tts_payload.mime_type if tts_payload else None,
-            tts_model=tts_payload.model if tts_payload else None,
-            tts_voice=tts_payload.voice if tts_payload else None,
-            tts_text=final_text,
-            tts_segments=tts_segments,
         )
 
     def end_session(self, session_id: str) -> None:
