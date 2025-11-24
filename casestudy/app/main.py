@@ -15,11 +15,21 @@ from casestudy.app.core.config import get_settings
 
 # Configure root logging to ensure stdout/stderr capture on hosts like Render
 LOG_LEVEL = os.getenv("APP_LOG_LEVEL", "DEBUG")
-logging.basicConfig(
-    level=getattr(logging, LOG_LEVEL.upper(), logging.DEBUG),
-    format="[%(levelname)s] %(asctime)s %(name)s: %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)],
-)
+# Force root logger configuration even if Uvicorn already configured.
+root_logger = logging.getLogger()
+for h in list(root_logger.handlers):
+    root_logger.removeHandler(h)
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(logging.Formatter('[%(levelname)s] %(asctime)s %(name)s: %(message)s'))
+root_logger.addHandler(handler)
+root_logger.setLevel(getattr(logging, LOG_LEVEL.upper(), logging.DEBUG))
+
+# Also raise levels for uvicorn internal loggers if needed.
+logging.getLogger("uvicorn").setLevel(logging.INFO)
+logging.getLogger("uvicorn.error").setLevel(logging.INFO)
+logging.getLogger("uvicorn.access").setLevel(logging.INFO)
+logging.getLogger("app.middleware").setLevel(logging.DEBUG)
+root_logger.debug("Logging initialized (APP_LOG_LEVEL=%s)", LOG_LEVEL)
 app = FastAPI(title="CaseStudy Unified API", version="1.0.0")
 
 
