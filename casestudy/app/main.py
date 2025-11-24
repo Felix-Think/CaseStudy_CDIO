@@ -6,9 +6,10 @@ from fastapi.staticfiles import StaticFiles
 from bson.objectid import ObjectId
 
 from casestudy.app.api import api_router
+from api_casestudy.routers import agent_router, health_router
 from casestudy.app.core.config import get_settings
 
-app = FastAPI(title="CaseStudy API", version="1.0.0")
+app = FastAPI(title="CaseStudy Unified API", version="1.0.0")
 
 settings = get_settings()
 FRONTEND_DIR = settings.frontend_dir
@@ -71,6 +72,8 @@ async def serve_manage_case() -> FileResponse:
     return FileResponse(manage_path)
 
 app.include_router(api_router, prefix="/api")
+app.include_router(agent_router, prefix="/api/agent")
+app.include_router(health_router, prefix="/api")
 
 @app.get("/login", response_class=FileResponse)
 async def serve_case_list() -> FileResponse:
@@ -94,4 +97,4 @@ async def serve_user(request: Request) -> FileResponse:
         raise HTTPException(status_code=404, detail="user.html not found.")
     return FileResponse(user_path)
 
-app.include_router(api_router, prefix="/api")
+# Duplicate include removed; agent + health routers already mounted.

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+import os
 from typing import Optional
 
 from langgraph.graph import END, StateGraph
@@ -30,6 +32,8 @@ from .runtime_store import RuntimeStateStore
 from .state import RuntimeState
 from ..utils.semantic_extract import load_indices
 
+logger = logging.getLogger(__name__)
+
 
 class CaseStudyGraphBuilder:
     """
@@ -51,12 +55,38 @@ class CaseStudyGraphBuilder:
         try:
             scene_index, persona_index, policy_index = load_indices()
         except Exception as exc:
-            raise RuntimeError(
-                "Không thể tải Semantic Memory từ Pinecone. Vui lòng kiểm tra cấu hình và namespace."
-            ) from exc
+            # Cho phép fallback khi triển khai (ví dụ Render) thiếu Pinecone / ENV.
+            allow_fallback = os.getenv("ALLOW_PINECONE_FALLBACK", "1") == "1"
+            if not allow_fallback:
+                raise RuntimeError(
+                    "Không thể tải Semantic Memory từ Pinecone. Vui lòng kiểm tra cấu hình và namespace."
+                ) from exc
+
+            logger.warning(
+                "Pinecone indices không khả dụng (%s). Kích hoạt chế độ fallback rỗng.", exc
+            )
+
+            class _StubSceneRetriever:
+                def invoke(self, query: str):  # noqa: D401
+                    return []
+
+            class _StubVectorIndex:
+                def similarity_search(self, query: str, k: int = 2):  # noqa: D401
+                    return []
+
+            # Các stub sẽ trả về dữ liệu trống; prompt vẫn chạy nhưng thiếu ngữ cảnh semantic.
+            scene_index = _StubSceneRetriever()
+            persona_index = _StubVectorIndex()
+            policy_index = _StubVectorIndex()
+
+        # scene_index từ PineconeVectorStore có .as_retriever; stub không có -> xử lý linh hoạt.
+        if hasattr(scene_index, "as_retriever"):
+            scene_retriever = scene_index.as_retriever(search_kwargs={"k": 4})
+        else:
+            scene_retriever = scene_index  # stub implements invoke
 
         self.scene_chain = create_scene_summary_chain(
-            scene_index.as_retriever(search_kwargs={"k": 4}),
+            scene_retriever,
             self.llm,
             case_id=case_id,
         )

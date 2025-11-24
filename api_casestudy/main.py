@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api_casestudy.core.config import get_settings
-from api_casestudy.routers import agent_router
+from api_casestudy.routers import agent_router, health_router
 
 
 def create_app() -> FastAPI:
@@ -19,6 +19,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(agent_router, prefix="/api")
+    app.include_router(health_router, prefix="/api")
     return app
 
 
