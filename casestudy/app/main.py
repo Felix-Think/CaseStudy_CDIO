@@ -1,15 +1,44 @@
 from __future__ import annotations
 
 from fastapi import FastAPI, HTTPException, Request, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+import logging
+import sys
+import traceback
+import os
 from bson.objectid import ObjectId
 
 from casestudy.app.api import api_router
 from api_casestudy.routers import agent_router, health_router
 from casestudy.app.core.config import get_settings
 
+# Configure root logging to ensure stdout/stderr capture on hosts like Render
+LOG_LEVEL = os.getenv("APP_LOG_LEVEL", "DEBUG")
+logging.basicConfig(
+    level=getattr(logging, LOG_LEVEL.upper(), logging.DEBUG),
+    format="[%(levelname)s] %(asctime)s %(name)s: %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+)
 app = FastAPI(title="CaseStudy Unified API", version="1.0.0")
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger = logging.getLogger("app.middleware")
+    logger.debug("--> %s %s", request.method, request.url.path)
+    try:
+        response = await call_next(request)
+    except Exception as exc:
+        # Log full traceback and re-raise after returning helpful response
+        logger.error("Unhandled exception processing request %s %s: %s", request.method, request.url.path, exc, exc_info=True)
+        # Optionally return structured JSON for debugging when DEBUG enabled
+        if os.getenv("APP_DEBUG_ERRORS", "1") == "1":
+            tb = traceback.format_exc()
+            return JSONResponse(status_code=500, content={"detail": str(exc), "traceback": tb})
+        raise
+    logger.debug("<-- %s %s %s", request.method, request.url.path, response.status_code)
+    return response
 
 settings = get_settings()
 FRONTEND_DIR = settings.frontend_dir
