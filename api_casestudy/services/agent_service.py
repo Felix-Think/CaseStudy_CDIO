@@ -177,7 +177,16 @@ class AgentService:
                 graph.invoke(state, config=initial_config)
             )
         except Exception as exc:  # pragma: no cover - fallback
-            raise RuntimeError("Không thể khởi tạo agent session.") from exc
+            logger.error(
+                "Bootstrap graph.invoke thất bại (case_id=%s, session_id=%s): %s",
+                payload.case_id,
+                session_id,
+                exc,
+                exc_info=True,
+            )
+            raise RuntimeError(
+                f"Không thể khởi tạo agent session: {exc.__class__.__name__}: {exc}"
+            ) from exc
         state_store.save(result_state)
         self._persist_state(
             session_id=session_id,
