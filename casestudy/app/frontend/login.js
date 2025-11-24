@@ -1,3 +1,5 @@
+// NOTE: Cross-site cookies require HTTPS + SameSite=None on backend and credentials: 'include' here.
+// When testing locally over http://, browsers may block secure cookies.
 const LOGIN_ENDPOINT = "/api/auth/login";
 
 const buildLoginPayload = (formData) => ({
@@ -27,6 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const response = await fetch(LOGIN_ENDPOINT, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });

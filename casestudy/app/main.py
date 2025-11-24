@@ -3,6 +3,8 @@ from __future__ import annotations
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 import logging
 import sys
 import traceback
@@ -48,13 +50,48 @@ async def log_requests(request: Request, call_next):
             return JSONResponse(status_code=500, content={"detail": str(exc), "traceback": tb})
         raise
     logger.debug("<-- %s %s %s", request.method, request.url.path, response.status_code)
+    try:
+        print(f"[REQ] {request.method} {request.url.path} {response.status_code}")
+    except Exception:
+        pass
     return response
 
 settings = get_settings()
 FRONTEND_DIR = settings.frontend_dir
 
+# ----------------------- Session + CORS Middlewares ------------------------ #
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    # Keep explicit log to avoid silent misconfig in production
+    root_logger.warning("SECRET_KEY is not set – SessionMiddleware will use a weak key.")
+    SECRET_KEY = os.getenv("FALLBACK_SECRET_KEY", "dev-insecure-secret-key-change-me")
+
+# Session must be added BEFORE CORS and routers
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SECRET_KEY,
+    same_site="none",
+    https_only=True,
+)
+
+# CORS should be after Session, before routers
+frontend_origins = os.getenv("FRONTEND_ORIGINS")
+if frontend_origins:
+    allowed = [o.strip() for o in frontend_origins.split(",") if o.strip()]
+else:
+    allowed = ["*"]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 if FRONTEND_DIR.exists():
     app.mount("/static", StaticFiles(directory=FRONTEND_DIR, html=False), name="static")
+else:
+    root_logger.warning("FRONTEND_DIR does not exist: %s", FRONTEND_DIR)
 
 
 def ensure_authenticated(request: Request) -> str:

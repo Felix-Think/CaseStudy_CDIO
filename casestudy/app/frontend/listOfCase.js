@@ -145,7 +145,7 @@ const applyFilter = () => {
 
 const loadCases = async () => {
   try {
-    const response = await fetch("/api/cases");
+    const response = await fetch("/api/cases", { credentials: "include" });
     if (!response.ok) throw new Error(`Fetch failed with ${response.status}`);
     const data = await response.json();
     state.cases = Array.isArray(data?.cases) ? data.cases : [];

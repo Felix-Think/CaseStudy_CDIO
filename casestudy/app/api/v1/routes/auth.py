@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request, Response, status
+import os
 from pymongo.errors import PyMongoError
 
 from casestudy.app.schemas.auth import (
@@ -46,12 +47,17 @@ async def login_member(payload: LoginRequest, response: Response) -> AuthRespons
         ) from exc
 
     user_id = str(user_document.get("_id"))
+    # Set cross-site friendly cookie for Render (HTTPS)
+    cookie_domain = os.getenv("COOKIE_DOMAIN")  # optional
     response.set_cookie(
         key="user_id",
         value=user_id,
         httponly=True,
+        secure=True,
+        samesite="none",
         max_age=60 * 60 * 12,
-        samesite="lax",
+        domain=cookie_domain if cookie_domain else None,
+        path="/",
     )
     return AuthResponse(
         message="Đăng nhập thành công. Đang chuyển tới Workspace.",

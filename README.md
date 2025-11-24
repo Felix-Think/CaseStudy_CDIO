@@ -77,3 +77,66 @@ poetry add <package_name>
 ```
 
 ❌ **Không sử dụng** `pip install` hay `conda install` vì sẽ làm lệch môi trường.
+
+---
+
+## Chạy local (Poetry)
+
+```bash
+poetry run uvicorn casestudy.app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Mặc định cần các biến môi trường trong file `.env`:
+
+```
+SECRET_KEY=your-random-secret
+MONGO_URI=...
+MONGO_DB=case_study_db
+OPENAI_API_KEY=...
+PINECONE_API_KEY=...
+ALLOW_PINECONE_FALLBACK=1
+```
+
+Lưu ý cookie:
+- Trình duyệt sẽ chặn cookie nếu chạy trên HTTP kèm `secure=true`. Để test cookie, hãy dùng HTTPS hoặc deploy cùng Render.
+
+---
+
+## Deploy Render
+
+Build Command:
+```
+poetry install --no-interaction --no-ansi
+```
+
+Start Command (khuyên dùng):
+```
+poetry run gunicorn -k uvicorn.workers.UvicornWorker casestudy.app.main:app --bind 0.0.0.0:$PORT --log-level info --access-logfile - --error-logfile -
+```
+
+Biến Môi Trường bắt buộc:
+- `SECRET_KEY` (bắt buộc cho SessionMiddleware)
+- `MONGO_URI`, `MONGO_DB`
+- `OPENAI_API_KEY`
+- `PINECONE_API_KEY` (hoặc bật `ALLOW_PINECONE_FALLBACK=1`)
+- `FRONTEND_ORIGINS` (tùy chọn, ví dụ: `https://your-frontend.onrender.com`; mặc định `*`)
+- `COOKIE_DOMAIN` (tùy chọn, nếu muốn set domain cho cookie)
+- `APP_LOG_LEVEL=DEBUG` (tạm thời khi debug), `APP_DEBUG_ERRORS=1`
+
+HTTPS/Cookie trên Render:
+- Phải bật Force HTTPS trên Render.
+- Cookie đăng nhập được set với `secure=true` và `samesite=none` để hoạt động cross-site.
+
+Health check:
+```
+GET /api/health
+```
+
+Tạo session agent:
+```
+POST /api/agent/agent/sessions
+{
+	"case_id": "electric_shock_001"
+}
+```
+Hoặc nếu đã gọn prefix `/api/agent/sessions` theo cấu hình của bạn.

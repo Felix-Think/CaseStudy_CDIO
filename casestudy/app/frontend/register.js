@@ -30,6 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const response = await fetch(REGISTER_ENDPOINT, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });

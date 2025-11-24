@@ -1,3 +1,5 @@
+// NOTE: If backend domain differs from frontend domain, ensure backend sets cookies with
+// secure=true, samesite=none and clients use credentials: 'include' where needed.
 const AGENT_API_BASE = window.__CASE_AGENT_BASE || "http://127.0.0.1:9000";
 const STORAGE_PREFIX = "case-session:";
 const SESSION_OWNER_ENDPOINT = "/api/auth/session-owner";
@@ -794,6 +796,7 @@ const markSessionOwner = async (sessionId) => {
   try {
     const response = await fetch(SESSION_OWNER_ENDPOINT, {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ session_id: sessionId }),
     });
