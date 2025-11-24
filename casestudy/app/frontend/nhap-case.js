@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   const API_ENDPOINT = '/api/cases';
   const DRAFT_ENDPOINT = '/api/cases/draft';
+  const BACKGROUND_ENDPOINT = '/api/cases/background';
   const JSON_SECTION_TYPES = ['skeleton', 'context', 'personas'];
   const JSON_SECTION_LABELS = {
     skeleton: 'Skeleton',
@@ -281,6 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupJsonImport();
   setupJsonExport();
   setupDraftAgent();
+  setupBackgroundGenerator();
   refreshImportStatuses();
   activateTab('skeleton');
   syncCaseIds();
@@ -570,6 +572,371 @@ document.addEventListener('DOMContentLoaded', () => {
         payload.persona_count = personaCount;
       }
       return payload;
+    }
+  }
+
+  function setupBackgroundGenerator() {
+    const container = document.querySelector('[data-background-tool]');
+    if (!container) {
+      return;
+    }
+
+    const promptField = container.querySelector('[data-background-prompt]');
+    const jsonField = container.querySelector('[data-background-json]');
+    const seedField = container.querySelector('[data-background-seed]');
+    const fileNameField = container.querySelector('[data-background-filename]');
+    const useFormButton = container.querySelector('[data-background-from-form]');
+    const uploadButton = container.querySelector('[data-background-upload]');
+    const fileInput = container.querySelector('[data-background-file]');
+    const clearButton = container.querySelector('[data-background-clear]');
+    const generateButton = container.querySelector('[data-generate-background]');
+    const statusLabel = container.querySelector('[data-background-status]');
+    const previewWrapper = container.querySelector('[data-background-preview]');
+    const previewImage = container.querySelector('[data-background-image]');
+    const previewPath = container.querySelector('[data-background-path]');
+    const previewPrompt = container.querySelector('[data-background-prompt-used]');
+    const openButton = container.querySelector('[data-background-open]');
+    const dropzone = container.querySelector('[data-background-dropzone]');
+    let latestDataUrl = null;
+
+    function setStatus(message, tone = 'muted') {
+      if (!statusLabel) {
+        return;
+      }
+      statusLabel.textContent = message;
+      statusLabel.classList.remove('text-slate-500', 'text-primary-600', 'text-emerald-600', 'text-rose-500');
+      const toneClass =
+        tone === 'success'
+          ? 'text-emerald-600'
+          : tone === 'error'
+          ? 'text-rose-500'
+          : tone === 'info'
+          ? 'text-primary-600'
+          : 'text-slate-500';
+      statusLabel.classList.add(toneClass);
+    }
+
+    function toggleGeneratorState(isLoading) {
+      if (!generateButton) {
+        return;
+      }
+      if (isLoading) {
+        if (!generateButton.dataset.originalText) {
+          generateButton.dataset.originalText = generateButton.textContent || '';
+        }
+        generateButton.textContent = 'Dang sinh...';
+        generateButton.disabled = true;
+        generateButton.classList.add('cursor-wait', 'opacity-60');
+      } else {
+        generateButton.disabled = false;
+        generateButton.classList.remove('cursor-wait', 'opacity-60');
+        if (generateButton.dataset.originalText != null) {
+          generateButton.textContent = generateButton.dataset.originalText;
+          delete generateButton.dataset.originalText;
+        }
+      }
+    }
+
+    function looksLikeScene(candidate) {
+      if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+        return false;
+      }
+      const keys = ['time', 'weather', 'location', 'noise', 'noise_level'];
+      return keys.some((key) => {
+        const value = candidate[key];
+        if (typeof value === 'string') {
+          return value.trim().length > 0;
+        }
+        return Boolean(value);
+      });
+    }
+
+    function looksLikeIndexEvent(candidate) {
+      if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+        return false;
+      }
+      const keys = ['summary', 'current_state', 'who_first_on_scene', 'who_first'];
+      return keys.some((key) => {
+        const value = candidate[key];
+        if (typeof value === 'string') {
+          return value.trim().length > 0;
+        }
+        return Boolean(value);
+      });
+    }
+
+    function extractScenePayload(data) {
+      if (!data || typeof data !== 'object') {
+        throw new Error('JSON scene khong hop le.');
+      }
+      const initial = data.initial_context || data.initialContext || {};
+      const context = data.context || {};
+      const contextInitial = context.initial_context || context.initialContext || {};
+      let scene = data.scene || initial.scene || context.scene || contextInitial.scene;
+      let indexEvent =
+        data.index_event ||
+        data.indexEvent ||
+        initial.index_event ||
+        initial.indexEvent ||
+        context.index_event ||
+        context.indexEvent ||
+        contextInitial.index_event ||
+        contextInitial.indexEvent;
+      if (!scene && looksLikeScene(data)) {
+        scene = data;
+      }
+      if (!indexEvent && looksLikeIndexEvent(data)) {
+        indexEvent = data;
+      }
+      return {
+        scene: scene || null,
+        index_event: indexEvent || null,
+      };
+    }
+
+    function parseSceneInput(raw) {
+      const trimmed = raw.trim();
+      if (!trimmed) {
+        return { scene: null, index_event: null };
+      }
+      try {
+        const parsed = JSON.parse(trimmed);
+        return extractScenePayload(parsed);
+      } catch (error) {
+        throw new Error('JSON scene khong hop le.');
+      }
+    }
+
+    function getSceneFromForm() {
+      const contextPayload = controllers.context.read() || {};
+      const initial = contextPayload.initial_context || {};
+      return {
+        scene: initial.scene || null,
+        index_event: initial.index_event || null,
+      };
+    }
+
+    function highlightDrop(isActive) {
+      if (!dropzone) {
+        return;
+      }
+      dropzone.classList.toggle('ring-2', isActive);
+      dropzone.classList.toggle('ring-primary-300', isActive);
+      dropzone.classList.toggle('bg-white', isActive);
+    }
+
+    if (dropzone) {
+      ['dragenter', 'dragover'].forEach((eventName) => {
+        dropzone.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          highlightDrop(true);
+        });
+      });
+      ['dragleave', 'dragend'].forEach((eventName) => {
+        dropzone.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          highlightDrop(false);
+        });
+      });
+      dropzone.addEventListener('drop', async (event) => {
+        event.preventDefault();
+        highlightDrop(false);
+        const file = event.dataTransfer?.files?.[0];
+        if (file) {
+          try {
+            const text = await file.text();
+            if (jsonField) {
+              jsonField.value = text.trim();
+            }
+            setStatus(`Da nap JSON tu '${file.name}'.`, 'info');
+          } catch (error) {
+            console.error(error);
+            showNotification('Khong the doc file vua keo tha.', 'error');
+          }
+          return;
+        }
+        const textData = event.dataTransfer?.getData('text/plain');
+        if (textData && jsonField) {
+          jsonField.value = textData.trim();
+          setStatus('Da nhan du lieu keo tha.', 'info');
+        }
+      });
+    }
+
+    if (uploadButton && fileInput) {
+      uploadButton.addEventListener('click', (event) => {
+        event.preventDefault();
+        fileInput.click();
+      });
+      fileInput.addEventListener('change', async () => {
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) {
+          return;
+        }
+        try {
+          const text = await file.text();
+          if (jsonField) {
+            jsonField.value = text.trim();
+          }
+          setStatus(`Da nap JSON tu '${file.name}'.`, 'info');
+        } catch (error) {
+          console.error(error);
+          showNotification('Khong the doc file JSON.', 'error');
+        } finally {
+          fileInput.value = '';
+        }
+      });
+    }
+
+    if (clearButton) {
+      clearButton.addEventListener('click', () => {
+        if (promptField) {
+          promptField.value = '';
+        }
+        if (jsonField) {
+          jsonField.value = '';
+        }
+        if (seedField) {
+          seedField.value = '';
+        }
+        if (fileNameField) {
+          fileNameField.value = '';
+        }
+        if (previewWrapper) {
+          previewWrapper.classList.add('hidden');
+        }
+        latestDataUrl = null;
+        setStatus('Da xoa noi dung truong.', 'muted');
+      });
+    }
+
+    if (useFormButton) {
+      useFormButton.addEventListener('click', () => {
+        const payload = getSceneFromForm();
+        if (jsonField) {
+          jsonField.value = JSON.stringify(payload, null, 2);
+        }
+        setStatus('Da nap scene/index_event tu form Context.', 'info');
+      });
+    }
+
+    if (openButton) {
+      openButton.addEventListener('click', () => {
+        if (!latestDataUrl) {
+          showNotification('Chua co anh de mo.', 'info');
+          return;
+        }
+        const previewWindow = window.open('');
+        if (previewWindow) {
+          previewWindow.document.write(
+            `<img src="${latestDataUrl}" alt="Scene background" style="max-width:100%;height:auto;" />`
+          );
+        }
+      });
+    }
+
+    if (generateButton) {
+      generateButton.addEventListener('click', handleGenerateBackground);
+    }
+
+    async function handleGenerateBackground() {
+      const caseId = resolveCurrentCaseId();
+      if (!caseId) {
+        const message = 'Vui long nhap Case ID truoc khi sinh anh.';
+        setStatus(message, 'error');
+        showNotification(message, 'error');
+        return;
+      }
+
+      let scenePayload = null;
+      let indexEventPayload = null;
+      if (jsonField && jsonField.value.trim()) {
+        try {
+          const parsed = parseSceneInput(jsonField.value);
+          scenePayload = parsed.scene;
+          indexEventPayload = parsed.index_event;
+        } catch (error) {
+          setStatus(error.message, 'error');
+          showNotification(error.message, 'error');
+          return;
+        }
+      } else {
+        const payload = getSceneFromForm();
+        scenePayload = payload.scene;
+        indexEventPayload = payload.index_event;
+      }
+
+      const promptValue = promptField ? promptField.value.trim() : '';
+      if (!promptValue && !scenePayload) {
+        const message = 'Nhap prompt hoac scene/index_event truoc khi sinh anh.';
+        setStatus(message, 'error');
+        showNotification(message, 'error');
+        return;
+      }
+
+      const requestPayload = {
+        case_id: caseId,
+      };
+      if (promptValue) {
+        requestPayload.prompt = promptValue;
+      }
+      if (scenePayload) {
+        requestPayload.scene = scenePayload;
+      }
+      if (indexEventPayload) {
+        requestPayload.index_event = indexEventPayload;
+      }
+
+      const seedValue = seedField ? Number.parseInt(seedField.value.trim(), 10) : NaN;
+      if (Number.isFinite(seedValue) && seedValue >= 0) {
+        requestPayload.seed = seedValue;
+      }
+      const fileName = fileNameField ? fileNameField.value.trim() : '';
+      if (fileName) {
+        requestPayload.file_name = fileName;
+      }
+
+      setStatus('Dang sinh anh nen...', 'info');
+      toggleGeneratorState(true);
+      try {
+        const response = await fetch(BACKGROUND_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'same-origin',
+          body: JSON.stringify(requestPayload),
+        });
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(text || 'Khong the sinh anh.');
+        }
+        const data = await response.json();
+        latestDataUrl = data.image_base64 ? `data:image/jpeg;base64,${data.image_base64}` : null;
+        if (previewImage && latestDataUrl) {
+          previewImage.src = latestDataUrl;
+          previewImage.alt = `Scene background for ${data.case_id}`;
+        }
+        if (previewPath) {
+          previewPath.textContent = data.file_path || '';
+        }
+        if (previewPrompt) {
+          previewPrompt.textContent = data.prompt_used || '';
+        }
+        if (previewWrapper) {
+          previewWrapper.classList.remove('hidden');
+        }
+        const successMessage = data.message || 'Da sinh anh nen.';
+        setStatus(successMessage, 'success');
+        showNotification(successMessage, 'success');
+      } catch (error) {
+        console.error(error);
+        const message = error?.message || 'Khong the sinh anh.';
+        setStatus(message, 'error');
+        showNotification(message, 'error');
+      } finally {
+        toggleGeneratorState(false);
+      }
     }
   }
 
@@ -1958,6 +2325,15 @@ document.addEventListener('DOMContentLoaded', () => {
     saveCaseButton.disabled = disabled;
     saveCaseButton.setAttribute('aria-disabled', disabled ? 'true' : 'false');
     saveCaseButton.title = disabled ? 'Bổ sung thông tin trước khi lưu case.' : '';
+  }
+
+  function resolveCurrentCaseId() {
+    return (
+      controllers.skeleton.getCaseId() ||
+      controllers.context.getCaseId() ||
+      controllers.personas.getCaseId() ||
+      ''
+    );
   }
 
   function getValidationState() {

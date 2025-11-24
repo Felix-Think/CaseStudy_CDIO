@@ -310,6 +310,124 @@
                   <h3 class="text-base font-semibold text-slate-900">Sự kiện ban đầu</h3>
                   <div class="mt-4 grid gap-4 md:grid-cols-2" data-index-event-fields></div>
                 </div>
+                <div class="rounded-2xl border border-slate-200 bg-white/70 p-5 shadow-inner space-y-5" data-background-tool>
+                  <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h3 class="text-base font-semibold text-slate-900">Anh nen minh hoa</h3>
+                      <p class="text-sm text-slate-500">
+                        Sinh anh tu prompt hoac JSON chua scene/index_event, luu chung thu muc case.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      data-background-from-form
+                      class="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-primary-200"
+                    >
+                      Lay tu form Context
+                    </button>
+                  </div>
+                  <div class="grid gap-4 md:grid-cols-2">
+                    <label class="text-sm font-semibold text-slate-800">
+                      Prompt tuy chon
+                      <textarea
+                        rows="4"
+                        data-background-prompt
+                        placeholder="Mo ta boi canh, nhung gi anh nen the hien..."
+                        class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
+                      ></textarea>
+                    </label>
+                    <label class="text-sm font-semibold text-slate-800" data-background-dropzone>
+                      Scene / Index Event JSON
+                      <textarea
+                        rows="4"
+                        data-background-json
+                        placeholder="{ \"scene\": {...}, \"index_event\": {...} }"
+                        class="mt-2 w-full rounded-xl border-2 border-dashed border-slate-200 bg-white/70 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
+                      ></textarea>
+                      <span class="mt-2 block text-xs font-medium text-slate-500">
+                        Keo tha file JSON hoac dan thang doan JSON co truong scene/index_event.
+                      </span>
+                    </label>
+                  </div>
+                  <div class="grid gap-4 md:grid-cols-3">
+                    <label class="text-sm font-semibold text-slate-800">
+                      Seed (tuy chon)
+                      <input
+                        type="number"
+                        min="0"
+                        data-background-seed
+                        placeholder="805022"
+                        class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
+                      />
+                    </label>
+                    <label class="text-sm font-semibold text-slate-800 md:col-span-2">
+                      Ten file
+                      <input
+                        type="text"
+                        data-background-filename
+                        placeholder="scene_background.jpg"
+                        class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-100"
+                      />
+                    </label>
+                  </div>
+                  <div class="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      data-background-upload
+                      class="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-primary-200"
+                    >
+                      Chon JSON
+                    </button>
+                    <button
+                      type="button"
+                      data-background-clear
+                      class="inline-flex items-center gap-2 rounded-full border border-rose-200 px-4 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-rose-200"
+                    >
+                      Xoa noi dung
+                    </button>
+                    <input type="file" accept=".json,.txt" class="hidden" data-background-file />
+                  </div>
+                  <div class="flex flex-wrap items-center justify-between gap-3">
+                    <p class="text-sm text-slate-500" data-background-status>Chua sinh anh.</p>
+                    <button
+                      type="button"
+                      data-generate-background
+                      class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                    >
+                      Sinh anh nen
+                    </button>
+                  </div>
+                  <div class="hidden rounded-2xl border border-dashed border-slate-300 bg-white/60 p-4" data-background-preview>
+                    <div class="flex flex-col gap-4 md:flex-row md:items-center">
+                      <img
+                        data-background-image
+                        src=""
+                        alt="Scene background preview"
+                        class="max-h-44 w-full rounded-xl object-cover md:w-64"
+                      />
+                      <div class="flex-1 space-y-2 text-xs text-slate-600">
+                        <p class="font-semibold text-slate-800">
+                          Duong dan:
+                          <span class="mt-1 block font-mono text-[11px]" data-background-path></span>
+                        </p>
+                        <div>
+                          <p class="font-semibold text-slate-800">Prompt da dung:</p>
+                          <pre
+                            data-background-prompt-used
+                            class="mt-1 max-h-32 overflow-auto rounded-lg bg-slate-100 p-2 text-[11px] leading-snug"
+                          ></pre>
+                        </div>
+                        <button
+                          type="button"
+                          data-background-open
+                          class="inline-flex items-center gap-1 text-xs font-semibold text-primary-600 transition hover:text-primary-500"
+                        >
+                          Mo anh trong tab moi
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 <div class="grid gap-4 md:grid-cols-2" data-context-notes></div>
                 <div class="space-y-4">
                   <div class="flex items-center justify-between">

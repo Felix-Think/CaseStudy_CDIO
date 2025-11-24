@@ -3,9 +3,11 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from casestudy.app.dependencies.cases import (
+    get_background_image_service,
     get_case_service,
     get_case_draft_service,
 )
+from casestudy.app.schemas.background import BackgroundImageRequest, BackgroundImageResponse
 from casestudy.app.schemas.case import (
     CaseCreatePayload,
     CaseCreateResponse,
@@ -14,6 +16,7 @@ from casestudy.app.schemas.case import (
     CaseDraftRequest,
     CaseDraftResponse,
 )
+from casestudy.app.services.background_image_service import BackgroundImageService
 from casestudy.app.services.case_service import CaseService
 from casestudy.app.services.case_draft_service import CaseDraftService
 
@@ -57,6 +60,32 @@ async def create_case_endpoint(
     """
     try:
         return service.create_case(payload)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        ) from exc
+
+# ==============================
+# Endpoint: POST /cases/background
+# ==============================
+@router.post(
+    "/background",
+    response_model=BackgroundImageResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def generate_case_background_endpoint(
+    payload: BackgroundImageRequest,
+    service: BackgroundImageService = Depends(get_background_image_service),
+) -> BackgroundImageResponse:
+    """
+    Sinh anh nen dua tren prompt/scene va luu chung thu muc case.
+    """
+    try:
+        return service.generate_background(payload)
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)

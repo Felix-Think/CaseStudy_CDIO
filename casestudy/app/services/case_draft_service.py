@@ -36,95 +36,129 @@ Thông tin người dùng:
 """
 
 STRUCTURED_PROMPT_TEMPLATE = """
-Bạn nhận được câu chuyện hiện trường dưới đây và nhiệm vụ là chuyển nó thành một JSON duy nhất.
-Chỉ trả về JSON, không bình luận.
-Danh sách `canon_events` phải có ít nhất 3 sự kiện liên tiếp (CE1, CE2, CE3, ...), theo đúng trình tự thời gian.
-Mỗi sự kiện cần đủ trường id/title/description/success_criteria/npc_appearance/timeout_turn/on_success/on_fail.
+Ban nhan duoc cau chuyen hien truong duoi day va nhiem vu la chuyen no thanh mot JSON duy nhat.
+Chi tra ve JSON, khong binh luan.
+Danh sach canon_events phai co it nhat 3 su kien lien tiep (CE1, CE2, CE3, ...), theo dung trinh tu thoi gian.
+Moi su kien can du truong id/title/description/success_criteria/npc_appearance/timeout_turn/on_success/on_fail.
+success_criteria la danh sach object {description, levels}; levels gom 5 muc diem (5-1) voi descriptor ngan de tham khao cham diem.
 
-Câu chuyện:
+Cau chuyen:
 ---
 {story_text}
 ---
 
-Yêu cầu cấu trúc JSON:
-{{
+Yeu cau cau truc JSON:
+{
   "case_id": "chuoi_khong_dau_gach_duoi_###",
-  "topic": "Chủ đề tổng quan",
-  "skeleton": {{
-    "case_id": "trùng case_id",
-    "title": "Tiêu đề case giàu hình ảnh",
+  "topic": "Chu de tong quan",
+  "skeleton": {
+    "case_id": "trang case_id",
+    "title": "Tieu de case giau hinh anh",
     "canon_events": [
-      {{
+      {
         "id": "CE1",
-        "title": "Tên sự kiện mở đầu",
-        "description": "Tóm lược sự kiện với bối cảnh khởi phát",
-        "success_criteria": ["Tiêu chí quan sát được", "..."],
-        "npc_appearance": [{{"persona_id": "id", "role": "vai trò"}}],
+        "title": "Ten su kien mo dau",
+        "description": "Tam luoc su kien voi boi canh khoi phat",
+        "success_criteria": [
+          {
+            "description": "Tieu chi quan sat duoc",
+            "levels": [
+              {"score": 5, "descriptor": "Xuat sac: chu dong, dung quy trinh, khong sai sot."},
+              {"score": 4, "descriptor": "Tot: hoan thanh phan lon, con thieu chi tiet nho."},
+              {"score": 3, "descriptor": "Dat: dap ung muc co ban, con cham hoac thieu 1-2 buoc."},
+              {"score": 2, "descriptor": "Yeu: bo sot buoc quan trong, can ho tro sat sao."},
+              {"score": 1, "descriptor": "Khong dat: xu ly sai cach hoac gay them rui ro."}
+            ]
+          }
+        ],
+        "npc_appearance": [{"persona_id": "id", "role": "vai tro"}],
         "timeout_turn": 9,
-        "on_success": "Điều tốt đẹp nếu xử lý đúng",
-        "on_fail": "Hậu quả nếu xử lý sai"
-      }},
-      {{
+        "on_success": "Dieu tot dep neu xu ly dung",
+        "on_fail": "Hau qua neu xu ly sai"
+      },
+      {
         "id": "CE2",
-        "title": "Tên sự kiện cao trào",
-        "description": "Diễn biến leo thang và hành động xử lý chính",
-        "success_criteria": ["Biện pháp cần đạt", "..."],
-        "npc_appearance": [{{"persona_id": "id", "role": "vai trò phù hợp"}}],
+        "title": "Ten su kien cao trao",
+        "description": "Dien bien leo thang va hanh dong xu ly chinh",
+        "success_criteria": [
+          {
+            "description": "Bien phap can dat",
+            "levels": [
+              {"score": 5, "descriptor": "Xuat sac: xu ly dut diem, phoi hop nhuan nhuyen."},
+              {"score": 4, "descriptor": "Tot: hoan thanh phan lon, con thieu vai diem nho."},
+              {"score": 3, "descriptor": "Dat: dap ung muc co ban, chua that su on dinh."},
+              {"score": 2, "descriptor": "Yeu: thieu nhieu buoc quan trong, phan ung cham."},
+              {"score": 1, "descriptor": "Khong dat: gay them rui ro hoac khong phan ung dung cach."}
+            ]
+          }
+        ],
+        "npc_appearance": [{"persona_id": "id", "role": "vai tro phu hop"}],
         "timeout_turn": 8,
-        "on_success": "Tiếp tục sang CE3 hoặc ổn định tình huống",
-        "on_fail": "Phải lặp lại xử lý hoặc phát sinh rủi ro mới"
-      }},
-      {{
+        "on_success": "Tiep tuc sang CE3 hoac an dinh tinh huong",
+        "on_fail": "Phai lap lai xu ly hoac phat sinh rui ro moi"
+      },
+      {
         "id": "CE3",
-        "title": "Tên sự kiện kết thúc/bàn giao",
-        "description": "Khép lại câu chuyện và chuẩn bị bàn giao",
-        "success_criteria": ["Tiêu chí bàn giao", "..."],
-        "npc_appearance": [{{"persona_id": "id", "role": "người nhận bàn giao"}}],
+        "title": "Ten su kien ket thuc/ban giao",
+        "description": "Khep lai cau chuyen va chuan bi ban giao",
+        "success_criteria": [
+          {
+            "description": "Tieu chi ban giao",
+            "levels": [
+              {"score": 5, "descriptor": "Xuat sac: ban giao gon gang, du lieu day du, thong nhat ke hoach."},
+              {"score": 4, "descriptor": "Tot: ban giao gan day du, con vai muc can bo sung."},
+              {"score": 3, "descriptor": "Dat: ban giao co ban, thong tin chua that su chi tiet."},
+              {"score": 2, "descriptor": "Yeu: bo sot thong tin quan trong, chua thong nhat buoc tiep theo."},
+              {"score": 1, "descriptor": "Khong dat: ban giao that bai hoac gay nham lan."}
+            ]
+          }
+        ],
+        "npc_appearance": [{"persona_id": "id", "role": "nguoi nhan ban giao"}],
         "timeout_turn": 7,
-        "on_success": "Tổng kết và bàn giao suôn sẻ",
-        "on_fail": "Cần thêm bước hỗ trợ cuối"
-      }}
+        "on_success": "Tong ket va ban giao suon se",
+        "on_fail": "Can them buoc ho tro cuoi"
+      }
     ]
-  }},
-  "context": {{
-    "case_id": "trùng case_id",
-    "topic": "Chủ đề",
-    "initial_context": {{
-      "scene": {{"time": "...", "location": "...", "weather": "...", "noise": "..."}},
-      "index_event": {{"summary": "...", "current_state": "...", "who_first_on_scene": "..."}},
-      "available_resources": {{"resource_key": ["Nguồn lực"]}},
-      "available_resources_meta": {{"resource_key": {{"label": "...", "note": "..."}}}}
-    }},
-    "constraints": ["Ràng buộc thực tế"],
-    "policies": ["Chính sách liên quan"],
-    "handover": "Cách bàn giao",
-    "success_state": "Bức tranh kết thúc"
-  }},
-  "personas": {{
-    "case_id": "trùng case_id",
+  },
+  "context": {
+    "case_id": "trang case_id",
+    "topic": "Chu de",
+    "initial_context": {
+      "scene": {"time": "...", "location": "...", "weather": "...", "noise": "..."},
+      "index_event": {"summary": "...", "current_state": "...", "who_first_on_scene": "..."},
+      "available_resources": {"resource_key": ["Nguon luc"]},
+      "available_resources_meta": {"resource_key": {"label": "...", "note": "..."}}
+    },
+    "constraints": ["Rang buoc thuc te"],
+    "policies": ["Chinh sach lien quan"],
+    "handover": "Cach ban giao",
+    "success_state": "Buc tranh ket thuc"
+  },
+  "personas": {
+    "case_id": "trang case_id",
     "personas": [
-      {{
+      {
         "id": "slug_name",
-        "name": "Tên nhân vật",
-        "role": "Vai trò",
+        "name": "Ten nhan vat",
+        "role": "Vai tro",
         "age": 30,
-        "gender": "Nam/Nữ/Khác",
-        "background": "Một câu mô tả bối cảnh",
-        "personality": "Đặc điểm tính cách",
-        "goal": "Điều họ muốn",
-        "speech_pattern": "Phong cách giao tiếp",
-        "emotion_init": "Cảm xúc ban đầu",
-        "emotion_during": ["Diễn biến cảm xúc"],
-        "emotion_end": "Cảm xúc kết thúc",
+        "gender": "Nam/Nu/Khac",
+        "background": "Mo ta ngan ve boi canh",
+        "personality": "Dac diem tinh cach",
+        "goal": "Dieu ho muon",
+        "speech_pattern": "Phong cach giao tiep",
+        "emotion_init": "Cam xuc ban dau",
+        "emotion_during": ["Dien bien cam xuc"],
+        "emotion_end": "Cam xuc ket thuc",
         "voice_tags": ["tag1", "tag2"]
-      }}
+      }
     ]
-  }}
-}}
+  }
+}
 
-Lưu ý:
-- Trích xuất thông tin từ câu chuyện đã cho, suy luận hợp lý nếu thiếu dữ kiện.
-- Giữ tiếng Việt có dấu. Không chèn mô tả ngoài JSON.
+Luu y:
+- Trach xuat thong tin tu cau chuyen da cho, suy luan hop ly neu thieu du kien.
+- Giu tieng Viet co dau. Khong chen mo ta ngoai JSON.
 """
 
 FALLBACK_EVENTS = [
@@ -148,6 +182,14 @@ DEFAULT_PERSONA_SEEDS = [
     ("minh", "Minh", "Chuyên gia kỹ thuật"),
     ("hoa", "Hoa", "Nhân sự hỗ trợ/khách hàng"),
     ("quang", "Quang", "Nhân sự hậu cần"),
+]
+
+SCORE_LEVELS_DESC = [
+    (5, "Hoan thanh xuat sac, chu dong va dung quy trinh."),
+    (4, "Hoan thanh phan lon yeu cau, thieu mot vai chi tiet nho."),
+    (3, "Dat muc co ban, con cham hoac thieu 1-2 buoc."),
+    (2, "Bo sot nhieu buoc quan trong, can nhac nho hoac ho tro sat sao."),
+    (1, "Khong dat, xu ly sai cach hoac gay them rui ro."),
 ]
 
 
@@ -313,7 +355,8 @@ class CaseDraftService:
         ).strip()
 
     def _build_structured_prompt(self, story_text: str, request: CaseDraftRequest) -> str:
-        return dedent(STRUCTURED_PROMPT_TEMPLATE).format(story_text=story_text.strip()).strip()
+        # Avoid Python .format() conflicts with JSON braces by simple string replacement.
+        return dedent(STRUCTURED_PROMPT_TEMPLATE).replace("{story_text}", story_text.strip()).strip()
 
     def _format_prompt_hints(self, request: CaseDraftRequest) -> str:
         lines: List[str] = []
@@ -374,28 +417,39 @@ class CaseDraftService:
         }
 
     def _build_simple_skeleton(self, topic: str, case_id: str, personas: List[Dict[str, Any]]) -> Dict[str, Any]:
-        personas_cycle = personas or [{"id": "persona_1", "role": "Nhân sự hỗ trợ"}]
+        personas_cycle = personas or [{"id": "persona_1", "role": "Nhan su ho tro"}]
+        default_criteria = [
+            [
+                "Xac dinh tinh huong ro rang va uu tien dung.",
+                "Chia se thong tin kip thoi cho dieu phoi.",
+            ],
+            [
+                "Ap dung bien phap xu ly an toan va thich hop.",
+                "Phoi hop nhuan nhuyen giua cac nhom lien quan.",
+            ],
+            [
+                "Thu thap bang chung/nhat ky va ban giao ro rang.",
+                "Thong bao dien bien cuoi cung cho ben nhan.",
+            ],
+        ]
         events = []
         for index, (event_id, title, description) in enumerate(FALLBACK_EVENTS, start=1):
+            criteria = default_criteria[index - 1] if index - 1 < len(default_criteria) else default_criteria[0]
             events.append(
                 {
                     "id": event_id,
                     "title": f"{title} - {topic}",
                     "description": description,
-                    "success_criteria": [
-                        "Hoàn thành mục tiêu đã đặt ra.",
-                        "Cập nhật thông tin kịp thời cho điều phối.",
-                    ],
+                    "success_criteria": self._build_success_criteria(criteria),
                     "npc_appearance": [
-                        {"persona_id": p["id"], "role": p.get("role") or "Nhân sự hỗ trợ"}
-                        for p in personas_cycle
+                        {"persona_id": p["id"], "role": p.get("role") or "Nhan su ho tro"} for p in personas_cycle
                     ],
                     "timeout_turn": 8 + index,
-                    "on_success": "Tình huống được kiểm soát, sẵn sàng bước kế tiếp.",
-                    "on_fail": "Tình huống kéo dài, cần báo cáo cấp trên.",
+                    "on_success": "Tinh huong duoc kiem soat, san sang buoc ke tiep.",
+                    "on_fail": "Tinh huong keo dai, can bao cao cap tren.",
                 }
             )
-        return {"case_id": case_id, "title": f"Tình huống {topic}", "canon_events": events}
+        return {"case_id": case_id, "title": f"Tinh huong {topic}", "canon_events": events}
 
     def _build_simple_context(
         self,
@@ -536,7 +590,7 @@ class CaseDraftService:
     ) -> Dict[str, Any]:
         events = skeleton.get("canon_events") if isinstance(skeleton, dict) else None
         if not isinstance(events, list) or not events:
-            events = self._build_simple_skeleton("Tình huống", case_id, personas)["canon_events"]
+            events = self._build_simple_skeleton("Tinh huong", case_id, personas)["canon_events"]
 
         persona_lookup = {p["id"]: p for p in personas}
         normalised_events: List[Dict[str, Any]] = []
@@ -545,17 +599,19 @@ class CaseDraftService:
             if not isinstance(raw, dict):
                 continue
             event_id = raw.get("id") or f"CE{index}"
-            title = raw.get("title") or f"Sự kiện {index}"
+            title = raw.get("title") or f"Su kien {index}"
             description = raw.get("description") or title
-            success = self._ensure_list(raw.get("success_criteria"), separator=";")
+            success = self._normalise_success_criteria(raw.get("success_criteria"))
             if not success:
-                success = [
-                    "Hoàn thành mục tiêu chính.",
-                    "Cập nhật kịp thời cho điều phối.",
-                ]
+                success = self._build_success_criteria(
+                    [
+                        "Hoan thanh muc tieu chinh.",
+                        "Cap nhat kip thoi cho dieu phoi.",
+                    ]
+                )
             npc_entries = raw.get("npc_appearance") or raw.get("npc") or []
             npc = self._normalise_npc(npc_entries, persona_lookup) or [
-                {"persona_id": p["id"], "role": p.get("role") or "Nhân sự hỗ trợ"} for p in personas
+                {"persona_id": p["id"], "role": p.get("role") or "Nhan su ho tro"} for p in personas
             ]
 
             timeout = raw.get("timeout_turn")
@@ -575,13 +631,13 @@ class CaseDraftService:
                     "npc_appearance": npc,
                     "timeout_turn": timeout,
                     "on_success": raw.get("on_success")
-                    or "Tình huống được kiểm soát, sẵn sàng bước kế tiếp.",
-                    "on_fail": raw.get("on_fail") or "Tình huống kéo dài, cần báo cáo cấp trên.",
+                    or "Tinh huong duoc kiem soat, san sang buoc ke tiep.",
+                    "on_fail": raw.get("on_fail") or "Tinh huong keo dai, can bao cao cap tren.",
                 }
             )
 
         title = skeleton.get("title") if isinstance(skeleton, dict) else None
-        return {"case_id": case_id, "title": title or f"Tình huống {case_id}", "canon_events": normalised_events}
+        return {"case_id": case_id, "title": title or f"Tinh huong {case_id}", "canon_events": normalised_events}
 
     def _normalise_context(
         self,
@@ -663,19 +719,76 @@ class CaseDraftService:
             return request.topic.strip()
         text = (request.prompt or "").strip()
         if not text:
-            return "Tình huống huấn luyện"
-        pattern = re.compile(r"(?:chủ đề|tình huống|case)\s*(?:về|liên quan đến)?\s+([^.,;]+)", re.IGNORECASE)
+            return "Tinh huong huan luyen"
+        pattern = re.compile(r"(?:chu de|tinh huong|case)\s*(?:ve|lien quan den)?\s+([^.,;]+)", re.IGNORECASE)
         match = pattern.search(text)
         if match:
             candidate = match.group(1).strip()
-            for delimiter in (" với ", " gồm ", " bao gồm ", " và ", " cùng "):
+            for delimiter in (" voi ", " gom ", " bao gom ", " va ", " cung "):
                 idx = candidate.lower().find(delimiter)
                 if idx != -1:
                     candidate = candidate[:idx].strip()
                     break
             if candidate:
                 return candidate[:120]
-        return text[:120] if text else "Tình huống huấn luyện"
+        return text[:120] if text else "Tinh huong huan luyen"
+
+    def _normalise_success_criteria(self, raw: Any) -> List[Dict[str, Any]]:
+        entries: List[Any] = []
+        if isinstance(raw, list):
+            entries = raw
+        elif raw is not None:
+            entries = [raw]
+
+        criteria: List[Dict[str, Any]] = []
+        for entry in entries:
+            if isinstance(entry, dict):
+                description = (entry.get("description") or entry.get("title") or "").strip()
+                levels = self._normalise_score_levels(entry.get("levels"), description or "tieu chi")
+                if not description and not any(level.get("descriptor") for level in levels):
+                    continue
+                criteria.append({"description": description, "levels": levels})
+            elif isinstance(entry, str):
+                desc = entry.strip()
+                if not desc:
+                    continue
+                criteria.append(self._build_success_criterion(desc))
+        return criteria
+
+    def _normalise_score_levels(self, raw_levels: Any, fallback_label: str) -> List[Dict[str, Any]]:
+        level_map: Dict[int, str] = {}
+        if isinstance(raw_levels, list):
+            for entry in raw_levels:
+                if not isinstance(entry, dict):
+                    continue
+                try:
+                    score = int(entry.get("score"))
+                except (TypeError, ValueError):
+                    continue
+                descriptor = (entry.get("descriptor") or entry.get("description") or "").strip()
+                if descriptor:
+                    level_map[score] = descriptor
+
+        levels: List[Dict[str, Any]] = []
+        for score, descriptor in SCORE_LEVELS_DESC:
+            resolved = level_map.get(score) or descriptor
+            levels.append({"score": score, "descriptor": resolved.replace("{criterion}", fallback_label)})
+        return levels or self._build_score_levels(fallback_label)
+
+    def _build_success_criteria(self, descriptions: List[str]) -> List[Dict[str, Any]]:
+        items: List[Dict[str, Any]] = []
+        for description in descriptions or []:
+            if isinstance(description, str) and description.strip():
+                items.append(self._build_success_criterion(description))
+        return items or [self._build_success_criterion("Hoan thanh muc tieu chinh.")]
+
+    def _build_success_criterion(self, description: str) -> Dict[str, Any]:
+        desc = (description or "").strip() or "Tieu chi thanh cong"
+        return {"description": desc, "levels": self._build_score_levels(desc)}
+
+    def _build_score_levels(self, criterion_label: str) -> List[Dict[str, Any]]:
+        label = (criterion_label or "tieu chi").strip() or "tieu chi"
+        return [{"score": score, "descriptor": desc.replace("{criterion}", label)} for score, desc in SCORE_LEVELS_DESC]
 
     @staticmethod
     def _normalise_npc(
