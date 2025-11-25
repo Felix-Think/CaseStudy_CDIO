@@ -4,9 +4,6 @@ const caseCount = document.getElementById("case-count");
 const searchInput = document.getElementById("case-search");
 const filterSelect = document.getElementById("case-filter");
 
-const AGENT_API_BASE = "http://127.0.0.1:9000";
-const STORAGE_PREFIX = "case-session:";
-
 const state = {
   cases: [],
   filtered: []
@@ -15,49 +12,6 @@ const state = {
 const formatTag = (value) => {
   if (!value) return "Khác";
   return value.toString().replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-};
-
-const sessionStorageKey = (sessionId) => `${STORAGE_PREFIX}${sessionId}`;
-
-async function callApiSession(caseId, userAction) {
-  try {
-    const response = await fetch(`${AGENT_API_BASE}/api/agent/sessions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        case_id: caseId,
-        user_action: userAction,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("❌ Lỗi khi gọi API:", error);
-  }
-}
-
-const persistSessionPayload = (payload) => {
-  if (!payload || !payload.session_id) return;
-  try {
-    sessionStorage.setItem(
-      sessionStorageKey(payload.session_id),
-      JSON.stringify({
-        session_id: payload.session_id,
-        case_id: payload.case_id,
-        state: payload.state,
-        saved_at: Date.now(),
-      })
-    );
-  } catch (error) {
-    console.warn("Không thể lưu session vào sessionStorage:", error);
-  }
 };
 
 const buildCard = (item) => {
@@ -90,24 +44,24 @@ const buildCard = (item) => {
   if (item.status) meta.appendChild(document.createElement("span")).textContent = formatTag(item.status);
   if (meta.childElementCount) anchor.appendChild(meta);
 
-  anchor.addEventListener("click", async (event) => {
+  // Track if already navigating to prevent duplicate clicks
+  let isNavigating = false;
+  
+  anchor.addEventListener("click", (event) => {
     if (!item.case_id) return;
-
-    anchor.classList.add("pointer-events-none", "opacity-70");
-    try {
-      const result = await callApiSession(item.case_id, "Bắt đầu nhiệm vụ.");
-      if (result?.session_id) {
-        persistSessionPayload(result);
-        window.location.href = `/chatframe?case_id=${encodeURIComponent(result.case_id)}&session_id=${result.session_id}`;
-      } else {
-        alert("Không thể tạo session cho case này. Vui lòng thử lại.");
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Có lỗi xảy ra khi tạo session. Vui lòng thử lại.");
-    } finally {
-      anchor.classList.remove("pointer-events-none", "opacity-70");
+    
+    // Prevent duplicate clicks
+    if (isNavigating) {
+      event.preventDefault();
+      return;
     }
+    
+    event.preventDefault();
+    isNavigating = true;
+    anchor.classList.add("pointer-events-none", "opacity-50");
+    
+    // Navigate to chatframe - session will be created there
+    window.location.href = `/chatframe?case_id=${encodeURIComponent(item.case_id)}`;
   });
 
   return anchor;

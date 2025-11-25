@@ -280,15 +280,58 @@ class AgentService:
             raise ValueError(f"Không tìm thấy dữ liệu logic cho case_id '{payload.case_id}'.") from exc
 
         start_event = payload.start_event or logic_memory.first_event or "CE1"
+        initial_user_action = payload.user_action.strip() if payload.user_action else None
 
+        # LAZY INIT: Chỉ tạo session cơ bản, không chạy graph
+        # Graph sẽ chạy khi user gửi tin nhắn đầu tiên
+        if payload.lazy_init:
+            logger.info(f"[create_session] LAZY INIT for case_id={payload.case_id}, session_id={session_id}")
+            
+            # Tạo state cơ bản
+            state = RuntimeState.initialize(
+                logic_memory=logic_memory,
+                start_event=start_event,
+                user_action=initial_user_action,
+            )
+            
+            # Thêm welcome message
+            event = logic_memory.get_event(start_event)
+            welcome_msg = f"Chào mừng bạn đến với tình huống: {event.get('title', start_event) if event else start_event}. Hãy bắt đầu bằng cách mô tả hành động của bạn."
+            state.ai_reply = welcome_msg
+            
+            state_store = _InMemoryStateStore()
+            state_store.save(state)
+            
+            # Lưu thông tin cần thiết để compile graph sau
+            session = AgentSession(
+                session_id=session_id,
+                case_id=payload.case_id,
+                model_name=model_name,
+                graph=None,  # Sẽ compile khi cần
+                state=state,
+                state_store=state_store,
+            )
+            self._sessions[session_id] = session
+            
+            # Persist state
+            self._persist_state(
+                session_id=session_id,
+                case_id=payload.case_id,
+                state=state,
+            )
+            
+            # Không cần TTS cho welcome message đơn giản
+            return session.to_response()
+
+        # FULL INIT: Chạy graph đầy đủ (legacy behavior)
+        logger.info(f"[create_session] FULL INIT for case_id={payload.case_id}, session_id={session_id}")
+        
         state_store = _InMemoryStateStore()
         graph = self._compile_graph(
             case_id=payload.case_id,
             model_name=model_name,
             state_store=state_store,
         )
-
-        initial_user_action = payload.user_action.strip() if payload.user_action else None
 
         state = RuntimeState.initialize(
             logic_memory=logic_memory,
@@ -332,6 +375,17 @@ class AgentService:
             state_store=state_store,
         )
         self._sessions[session_id] = session
+        
+        # Skip TTS khi khởi tạo để tăng tốc (mặc định skip_tts=True)
+        if payload.skip_tts:
+            logger.info(f"[create_session] Skipping TTS for faster init, session_id={session_id}")
+            return session.to_response(
+                tts_payload=None,
+                tts_segments=[],
+                tts_text=result_state.ai_reply,
+            )
+        
+        # Nếu không skip, tạo TTS đầy đủ
         dialogue_lines = _extract_dialogue_lines(result_state)
         tts_payload, tts_segments, tts_text = self._build_tts_segments(dialogue_lines)
         final_text = tts_text or result_state.ai_reply
@@ -348,6 +402,16 @@ class AgentService:
 
         if not payload.user_input or not payload.user_input.strip():
             raise ValueError("user_input không được để trống.")
+
+        # Lazy compile graph nếu chưa có (từ lazy_init)
+        if session.graph is None:
+            logger.info(f"[send_turn] Lazy compiling graph for session {session.session_id}")
+            _configure_semantic_module(session.case_id)
+            session.graph = self._compile_graph(
+                case_id=session.case_id,
+                model_name=session.model_name,
+                state_store=session.state_store,
+            )
 
         config = {"reset_state": True} if payload.reset_state else {}
         if payload.start_event:

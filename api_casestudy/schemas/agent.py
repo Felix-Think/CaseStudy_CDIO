@@ -24,6 +24,14 @@ class AgentSessionCreateRequest(BaseModel):
         default=True,
         description="Có reset trạng thái runtime trước khi chạy lượt đầu hay không.",
     )
+    lazy_init: bool = Field(
+        default=False,
+        description="Nếu True, chỉ khởi tạo session cơ bản mà không chạy graph. Graph sẽ chạy khi user gửi tin nhắn đầu tiên.",
+    )
+    skip_tts: bool = Field(
+        default=True,
+        description="Nếu True, bỏ qua TTS khi khởi tạo session để tăng tốc. TTS sẽ được bật khi gửi tin nhắn.",
+    )
 
 class TTSSegment(BaseModel):
     speaker: Optional[str] = Field(default=None, description="Tên nhân vật đang nói.")

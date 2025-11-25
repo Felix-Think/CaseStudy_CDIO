@@ -1,7 +1,17 @@
+// Prevent script from running twice (e.g., if loaded multiple times)
+if (window.__CHATFRAME_LOADED__) {
+  console.warn('[chatframe.js] Script already loaded, skipping duplicate execution');
+  throw new Error('Chatframe script already loaded');
+}
+window.__CHATFRAME_LOADED__ = true;
+
 const AGENT_API_BASE = window.__CASE_AGENT_BASE || "http://127.0.0.1:9000";
 const STORAGE_PREFIX = "case-session:";
 const SESSION_OWNER_ENDPOINT = "/api/auth/session-owner";
 const recordedSessions = new Set();
+
+// Global flag to prevent duplicate session creation across all calls
+let globalSessionCreationLock = false;
 
 const chatHistory = document.getElementById("chat-history");
 const chatForm = document.getElementById("chat-form");
@@ -37,6 +47,8 @@ const sessionState = {
   state: null,
   ownerRecorded: false,
   lastServerTts: null,
+  isInitializing: false,
+  bootstrapPromise: null,  // Promise để track bootstrap completion
 };
 
 let activeServerAudio = null;
@@ -467,11 +479,14 @@ const initVoiceControls = () => {
   }
 };
 
-const appendMessage = (text, role = "ai", speakerLabel) => {
+const appendMessage = (text, role = "ai", speakerLabel, isLoading = false) => {
   if (!chatHistory || !text) return;
 
   const article = document.createElement("article");
   article.className = `message ${role === "user" ? "message--user" : "message--ai"}`;
+  if (isLoading) {
+    article.classList.add("message--loading");
+  }
 
   const avatar = document.createElement("div");
   avatar.className = "message__avatar";
@@ -502,6 +517,8 @@ const appendMessage = (text, role = "ai", speakerLabel) => {
   article.appendChild(body);
   chatHistory.appendChild(article);
   scrollChat();
+  
+  return article;
 };
 
 const persistSession = (payload) => {
@@ -540,19 +557,190 @@ const updateUrlWithSession = () => {
   window.history.replaceState({}, "", `${window.location.pathname}?${nextParams.toString()}`);
 };
 
-const createSession = async (caseId, userAction = "Bắt đầu nhiệm vụ.") => {
-  const response = await fetch(`${AGENT_API_BASE}/api/agent/sessions`, {
+// Track pending session creation per case to avoid race conditions
+const pendingSessionKey = (caseId) => `pending-session:${caseId}`;
+
+// Update loading message in chat
+const updateLoadingMessage = (message) => {
+  const loadingMsg = chatHistory?.querySelector('.message--loading');
+  if (loadingMsg) {
+    const bubble = loadingMsg.querySelector('.message__bubble p');
+    if (bubble) bubble.textContent = message;
+  }
+};
+
+// Create session with streaming progress
+const createSessionWithStreaming = async (caseId, userAction = "Bắt đầu nhiệm vụ.", onProgress) => {
+  return new Promise((resolve, reject) => {
+    const eventSource = new EventSource(
+      `${AGENT_API_BASE}/api/agent/sessions/stream?` + new URLSearchParams({
+        case_id: caseId,
+        user_action: userAction,
+        skip_tts: 'true',
+      }).toString()
+    );
+    
+    // For POST with body, we need to use fetch with ReadableStream instead
+    // EventSource only supports GET, so we'll use fetch with streaming
+    reject(new Error("EventSource doesn't support POST"));
+  });
+};
+
+// Create session with streaming using fetch
+const createSessionStreaming = async (caseId, userAction = "Bắt đầu nhiệm vụ.", onProgress) => {
+  const response = await fetch(`${AGENT_API_BASE}/api/agent/sessions/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       case_id: caseId,
       user_action: userAction,
+      skip_tts: true,
     }),
   });
+  
   if (!response.ok) {
     throw new Error(`Không thể tạo session (status ${response.status}).`);
   }
-  return response.json();
+  
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error("Streaming not supported");
+  }
+  
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let result = null;
+  
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    
+    buffer += decoder.decode(value, { stream: true });
+    
+    // Parse SSE events from buffer
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || ''; // Keep incomplete line in buffer
+    
+    for (const line of lines) {
+      if (line.startsWith('event: ')) {
+        // Next line should be data
+        continue;
+      }
+      if (line.startsWith('data: ')) {
+        try {
+          const data = JSON.parse(line.slice(6));
+          
+          // Check event type from previous line or data structure
+          if (data.message && data.progress !== undefined) {
+            // Status event
+            if (onProgress) onProgress(data.message, data.progress);
+          } else if (data.session_id) {
+            // Complete event
+            result = data;
+          } else if (data.code) {
+            // Error event
+            throw new Error(data.message || 'Unknown error');
+          }
+        } catch (e) {
+          if (e.message !== 'Unknown error') {
+            // JSON parse error, ignore
+          } else {
+            throw e;
+          }
+        }
+      }
+    }
+  }
+  
+  if (!result) {
+    throw new Error("No session data received");
+  }
+  
+  return result;
+};
+
+const createSession = async (caseId, userAction = "Bắt đầu nhiệm vụ.", forceNew = false, useStreaming = true) => {
+  // Check if there's already a pending/completed session for this case (unless forcing new)
+  if (!forceNew) {
+    const pendingKey = pendingSessionKey(caseId);
+    const pending = sessionStorage.getItem(pendingKey);
+    if (pending) {
+      try {
+        const pendingData = JSON.parse(pending);
+        const age = Date.now() - (pendingData.created_at || 0);
+        // If session was created less than 60 seconds ago, reuse it
+        if (age < 60000 && pendingData.session_id && pendingData.state) {
+          return pendingData;
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+    }
+  }
+  
+  // Global lock to prevent duplicate session creation
+  if (globalSessionCreationLock) {
+    throw new Error("Session creation already in progress");
+  }
+
+  // Cross-tab lock using localStorage
+  const lockKey = `session-creation-lock:${caseId}`;
+  const existingLock = localStorage.getItem(lockKey);
+  
+  if (existingLock) {
+    const lockTime = parseInt(existingLock, 10);
+    const now = Date.now();
+    
+    // If lock is less than 30 seconds old, block
+    if (now - lockTime < 30000) {
+      throw new Error("Session creation already in progress in another tab");
+    } else {
+      localStorage.removeItem(lockKey);
+    }
+  }
+
+  try {
+    globalSessionCreationLock = true;
+    localStorage.setItem(lockKey, Date.now().toString());
+    
+    let result;
+    
+    if (useStreaming) {
+      // Use streaming endpoint with progress updates
+      result = await createSessionStreaming(caseId, userAction, (message, progress) => {
+        updateLoadingMessage(`${message} (${progress}%)`);
+      });
+    } else {
+      // Fallback to regular endpoint
+      const response = await fetch(`${AGENT_API_BASE}/api/agent/sessions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          case_id: caseId,
+          user_action: userAction,
+          skip_tts: true,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Không thể tạo session (status ${response.status}).`);
+      }
+      
+      result = await response.json();
+    }
+    
+    // Store in sessionStorage to prevent duplicate creation on page reload
+    const pendingKey = pendingSessionKey(caseId);
+    sessionStorage.setItem(pendingKey, JSON.stringify({
+      ...result,
+      created_at: Date.now()
+    }));
+    
+    return result;
+  } finally {
+    globalSessionCreationLock = false;
+    localStorage.removeItem(lockKey);
+  }
 };
 
 const sendTurn = async (sessionId, userInput) => {
@@ -672,36 +860,82 @@ const renderState = (state, options = {}) => {
 };
 
 const bootstrapSession = async () => {
+  // Prevent duplicate initialization - if already running, return existing promise
+  if (sessionState.isInitializing && sessionState.bootstrapPromise) {
+    return sessionState.bootstrapPromise;
+  }
+  
+  // If already have a valid session, just render it
+  if (sessionState.sessionId && sessionState.state) {
+    renderState(sessionState.state, { speakLatestAi: ttsEnabled, preferServerTts: true });
+    return;
+  }
+
   let sessionPayload = null;
 
+  // Priority 1: If we have session_id in URL, try to load it from storage
   if (sessionState.sessionId) {
     sessionPayload = loadStoredSession(sessionState.sessionId);
   }
-
+  
+  // Priority 1.5: Check pending session cache
   if (!sessionPayload && sessionState.caseId) {
+    const pendingKey = pendingSessionKey(sessionState.caseId);
+    const pending = sessionStorage.getItem(pendingKey);
+    if (pending) {
+      try {
+        const pendingData = JSON.parse(pending);
+        const age = Date.now() - (pendingData.created_at || 0);
+        if (age < 60000 && pendingData.session_id && pendingData.state) {
+          sessionPayload = pendingData;
+        }
+      } catch (e) {
+        // Ignore
+      }
+    }
+  }
+
+  // Priority 2: Only create NEW session if we have case_id but NO session_id in URL
+  if (!sessionPayload && sessionState.caseId && !sessionState.sessionId) {
     try {
-      appendMessage("Đang khởi tạo session...", "ai");
-      sessionPayload = await createSession(sessionState.caseId);
+      sessionState.isInitializing = true;
+      // Add loading message that will be updated by streaming
+      appendMessage("Đang khởi tạo tình huống...", "ai", null, true);
+      sessionPayload = await createSession(sessionState.caseId, "Bắt đầu nhiệm vụ.", false, true);
     } catch (error) {
-      console.error(error);
+      console.error("Bootstrap error:", error);
       chatHistory.innerHTML = "";
       updateSummaryPanels(null);
       appendMessage("Không thể khởi tạo session. Vui lòng kiểm tra lại agent service.", "ai");
+      sessionState.isInitializing = false;
       return;
     }
+  }
+
+  // If we have session_id in URL but no payload, show empty state
+  if (!sessionPayload && sessionState.sessionId) {
+    chatHistory.innerHTML = "";
+    updateSummaryPanels(null);
+    appendMessage("Phiên làm việc đã sẵn sàng. Hãy gửi tin nhắn đầu tiên để bắt đầu.", "ai");
+    sessionState.isInitializing = false;
+    return;
   }
 
   if (!sessionPayload) {
     chatHistory.innerHTML = "";
     updateSummaryPanels(null);
     appendMessage("Chưa chọn case nào. Vui lòng quay lại danh sách case để bắt đầu.", "ai");
+    sessionState.isInitializing = false;
     return;
   }
 
+  // Update session state IMMEDIATELY after getting payload
   sessionState.sessionId = sessionPayload.session_id;
   sessionState.caseId = sessionPayload.case_id || sessionState.caseId;
   sessionState.state = sessionPayload.state;
   sessionState.ownerRecorded = false;
+  sessionState.isInitializing = false;
+  
   storeServerTts(sessionPayload);
   persistSession(sessionPayload);
   updateUrlWithSession();
@@ -719,28 +953,37 @@ chatForm?.addEventListener("submit", async (event) => {
     return;
   }
 
+  // Wait for bootstrap to complete if it's running
+  if (sessionState.bootstrapPromise) {
+    try {
+      await sessionState.bootstrapPromise;
+    } catch (e) {
+      // Ignore - will handle below
+    }
+  }
+
+  // If still initializing or locked, block
+  if (sessionState.isInitializing || globalSessionCreationLock) {
+    appendMessage("Đang khởi tạo, vui lòng đợi...", "ai");
+    return;
+  }
+
+  // Must have session at this point
+  if (!sessionState.sessionId) {
+    appendMessage("Session chưa sẵn sàng. Vui lòng đợi hoặc tải lại trang.", "ai");
+    return;
+  }
+
   appendMessage(value, "user");
   chatInput.value = "";
   chatInput.disabled = true;
 
   try {
-    if (!sessionState.sessionId) {
-      const sessionPayload = await createSession(sessionState.caseId, value);
-      sessionState.sessionId = sessionPayload.session_id;
-      sessionState.caseId = sessionPayload.case_id || sessionState.caseId;
-      sessionState.state = sessionPayload.state;
-      sessionState.ownerRecorded = false;
-      storeServerTts(sessionPayload);
-      persistSession(sessionPayload);
-      updateUrlWithSession();
-      ensureSessionOwnerSaved(sessionState.sessionId);
-    } else {
-      const turn = await sendTurn(sessionState.sessionId, value);
-      sessionState.caseId = turn.case_id || sessionState.caseId;
-      sessionState.state = turn.state;
-      storeServerTts(turn);
-      persistSession(turn);
-    }
+    const turn = await sendTurn(sessionState.sessionId, value);
+    sessionState.caseId = turn.case_id || sessionState.caseId;
+    sessionState.state = turn.state;
+    storeServerTts(turn);
+    persistSession(turn);
     renderState(sessionState.state, { speakLatestAi: ttsEnabled, preferServerTts: true });
   } catch (error) {
     console.error(error);
@@ -765,10 +1008,22 @@ clearBtn?.addEventListener("click", async () => {
     appendMessage("Chưa có case nào được lựa chọn.", "ai");
     return;
   }
+  
+  // Prevent duplicate clicks
+  if (clearBtn.disabled) return;
+  
+  clearBtn.disabled = true;
+  clearBtn.classList.add("opacity-50");
+  
   chatHistory.innerHTML = "";
   appendMessage("Đang làm mới session...", "ai");
+  
   try {
-    const sessionPayload = await createSession(sessionState.caseId, "Bắt đầu nhiệm vụ.");
+    // Clear pending session cache before creating new one
+    const pendingKey = pendingSessionKey(sessionState.caseId);
+    sessionStorage.removeItem(pendingKey);
+    
+    const sessionPayload = await createSession(sessionState.caseId, "Bắt đầu nhiệm vụ.", true);  // forceNew = true
     sessionState.sessionId = sessionPayload.session_id;
     sessionState.caseId = sessionPayload.case_id || sessionState.caseId;
     sessionState.state = sessionPayload.state;
@@ -779,15 +1034,36 @@ clearBtn?.addEventListener("click", async () => {
     ensureSessionOwnerSaved(sessionState.sessionId);
     renderState(sessionPayload.state, { speakLatestAi: ttsEnabled, preferServerTts: true });
   } catch (error) {
-    console.error(error);
+    console.error("Error clearing session:", error);
     chatHistory.innerHTML = "";
     updateSummaryPanels(null);
     appendMessage("Không thể làm mới session. Thử lại sau.", "ai");
+  } finally {
+    clearBtn.disabled = false;
+    clearBtn.classList.remove("opacity-50");
   }
 });
 
 initVoiceControls();
-document.addEventListener("DOMContentLoaded", bootstrapSession);
+
+// Ensure bootstrapSession only runs once
+let bootstrapHasRun = false;
+
+const runBootstrapOnce = () => {
+  if (bootstrapHasRun) return;
+  bootstrapHasRun = true;
+  
+  // Store the promise so other handlers can wait for it
+  sessionState.bootstrapPromise = bootstrapSession().finally(() => {
+    sessionState.bootstrapPromise = null;
+  });
+};
+
+if (document.readyState === 'loading') {
+  document.addEventListener("DOMContentLoaded", runBootstrapOnce);
+} else {
+  runBootstrapOnce();
+}
 const markSessionOwner = async (sessionId) => {
   if (!sessionId || recordedSessions.has(sessionId)) return;
   recordedSessions.add(sessionId);
