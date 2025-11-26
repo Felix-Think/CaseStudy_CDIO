@@ -55,7 +55,7 @@ def create_persona_digest_chain(
                 "query_template",
                 "Thông tin nhân vật {persona_id} trong mô phỏng",
             ).format(persona_id=persona_id)
-            results = persona_index.similarity_search(query, k=top_k)
+            results = persona_index.similarity_search(query, k=1)
             if not results:
                 documents.append(f"[{persona_id}] Không tìm thấy dữ liệu nhân vật.")
             else:
@@ -97,10 +97,11 @@ def create_persona_dialogue_chain(
                     "Canon Event: {event_title}\n"
                     "Tóm tắt bối cảnh hiện tại: {scene_summary}\n"
                     "Hành động mới nhất của học viên: {user_action}\n"
+                    "Danh sách nhân vật được phép phản hồi:\n{allowed_personas}\n"
                     "Trạng thái nhân vật:\n{persona_slate}\n"
                     "Đoạn hội thoại gần nhất:\n{recent_history}\n\n"
                     "Yêu cầu:\n"
-                    "- Chỉ tạo lời thoại cho những nhân vật phù hợp để phản ứng.\n"
+                    "- Chỉ tạo lời thoại cho các nhân vật có trong danh sách được phép.\n"
                     "- Mỗi nhân vật tối đa 1-2 câu, ưu tiên hành vi hợp lý.\n"
                     "- Nếu không cần phản hồi, trả về mảng rỗng.\n"
                     "- Phản hồi cuối cùng ở dạng JSON array: "
@@ -118,6 +119,7 @@ def create_persona_dialogue_chain(
                 "event_title": payload.get("event_title", "Sự kiện"),
                 "scene_summary": payload.get("scene_summary", "Chưa có dữ liệu."),
                 "user_action": payload.get("user_action", "Chưa ghi nhận."),
+                "allowed_personas": payload.get("allowed_personas", "Không có nhân vật."),
                 "persona_slate": payload.get("persona_slate", "Không có nhân vật."),
                 "recent_history": payload.get("recent_history", "Chưa có hội thoại."),
             }

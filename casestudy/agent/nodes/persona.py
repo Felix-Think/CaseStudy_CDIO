@@ -101,6 +101,9 @@ def build_persona_dialogue_node(
 
         persona_slate = _format_persona_slate(state.active_personas)
         recent_history = _format_recent_history(state.dialogue_history)
+        allowed_personas = "\n".join(
+            f"{persona.id} - {persona.name} ({persona.role})" for persona in state.active_personas.values()
+        ) or "Không có nhân vật."
 
         raw_output = persona_dialogue_chain(
             {
@@ -108,11 +111,22 @@ def build_persona_dialogue_node(
                 "scene_summary": state.scene_summary or "Chưa có dữ liệu.",
                 "user_action": user_action,
                 "persona_slate": persona_slate,
+                "allowed_personas": allowed_personas,
                 "recent_history": recent_history,
             }
         )
 
         persona_lines = _parse_persona_dialogue(raw_output)
+        allowed_ids = set(state.active_personas.keys())
+        allowed_names = {persona.name for persona in state.active_personas.values()}
+        persona_lines = [
+            line
+            for line in persona_lines
+            if (
+                (line.get("persona_id") in allowed_ids)
+                or (line.get("speaker") in allowed_names and allowed_ids)
+            )
+        ]
         print("[DEBUG persona_dialogue] Generated persona lines:", persona_lines)
         if not persona_lines:
             state.event_summary["_last_persona_dialogue"] = []
