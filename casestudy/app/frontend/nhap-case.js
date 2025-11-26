@@ -49,22 +49,6 @@ document.addEventListener('DOMContentLoaded', () => {
           type: 'number',
           min: 0,
         },
-        {
-          key: 'event.on_success',
-          label: 'On Success',
-          placeholder: 'Hệ quả khi hoàn thành canon event',
-          textarea: true,
-          rows: 3,
-          wide: true,
-        },
-        {
-          key: 'event.on_fail',
-          label: 'On Fail',
-          placeholder: 'Hệ quả khi thất bại',
-          textarea: true,
-          rows: 3,
-          wide: true,
-        },
       ],
     },
     context: {
@@ -1248,7 +1232,9 @@ document.addEventListener('DOMContentLoaded', () => {
       block.appendChild(grid);
 
       block.appendChild(buildSuccessCriteriaSection());
+      block.appendChild(buildOutcomeBranchingSection());
       setupSuccessCriteriaSection(block);
+      initOutcomeBranchingSection(block.querySelector('[data-outcome-branches]'));
 
       removeBtn.addEventListener('click', () => {
         if (eventsHost.children.length === 1) {
@@ -1998,6 +1984,145 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .filter(Boolean);
   }
+
+  function buildOutcomeBranchingSection() {
+    const wrapper = document.createElement('div');
+    wrapper.className =
+      'mt-4 space-y-3';
+    wrapper.dataset.outcomeBranches = 'true';
+
+    const header = document.createElement('div');
+    header.className = 'flex flex-wrap items-start justify-between gap-3';
+    const titleWrap = document.createElement('div');
+    const label = document.createElement('span');
+    label.className = 'text-xs font-semibold uppercase tracking-wide text-primary-700';
+    label.textContent = 'Rẽ nhánh theo thang điểm 5';
+    const helper = document.createElement('p');
+    helper.className = 'text-xs text-slate-600';
+    helper.textContent =
+      'Chỉ cần nhập 5 nhánh tương ứng điểm 5 → 1 (điểm cao là tốt nhất, điểm thấp là thất bại).';
+    titleWrap.appendChild(label);
+    titleWrap.appendChild(helper);
+    header.appendChild(titleWrap);
+    const resetBtn = document.createElement('button');
+    resetBtn.type = 'button';
+    resetBtn.className =
+      'text-xs font-semibold text-primary-600 transition hover:text-primary-500 focus:outline-none';
+    resetBtn.textContent = 'Xóa nhánh';
+    resetBtn.setAttribute('data-reset-branches', '');
+    header.appendChild(resetBtn);
+    wrapper.appendChild(header);
+
+    const list = document.createElement('div');
+    list.className = 'space-y-2';
+    SUCCESS_LEVEL_SCORES.forEach((score) => {
+      const row = document.createElement('label');
+      row.className = 'block space-y-1 rounded-lg border border-slate-100 bg-white/80 p-3';
+      const level = document.createElement('span');
+      level.className = 'text-xs font-semibold uppercase tracking-wide text-slate-600';
+      level.textContent = `Điểm ${score}`;
+      const textarea = document.createElement('textarea');
+      textarea.rows = 2;
+      textarea.className =
+        'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-200';
+      textarea.placeholder = `Nhánh kế tiếp khi đạt điểm ${score}.`;
+      textarea.dataset.branchScore = String(score);
+      textarea.dataset.branchField = 'score';
+      row.appendChild(level);
+      row.appendChild(textarea);
+      list.appendChild(row);
+    });
+    wrapper.appendChild(list);
+
+    return wrapper;
+  }
+
+  function initOutcomeBranchingSection(root) {
+    if (!root) {
+      return;
+    }
+    const resetBtn = root.querySelector('[data-reset-branches]');
+    if (resetBtn && !resetBtn.dataset.bound) {
+      resetBtn.dataset.bound = 'true';
+      resetBtn.addEventListener('click', () => {
+        resetOutcomeBranches(root);
+        scheduleSaveButtonStateUpdate();
+      });
+    }
+    root.querySelectorAll('[data-branch-score]').forEach((field) => {
+      if (!field.dataset.branchWatcher) {
+        field.dataset.branchWatcher = 'true';
+        field.addEventListener('input', () => scheduleSaveButtonStateUpdate());
+      }
+    });
+  }
+
+  function resetOutcomeBranches(root) {
+    if (!root) {
+      return;
+    }
+    root.querySelectorAll('[data-branch-score]').forEach((field) => {
+      field.value = '';
+    });
+  }
+
+  function collectOutcomeBranches(root) {
+    const result = {};
+    if (!root) {
+      return result;
+    }
+    SUCCESS_LEVEL_SCORES.forEach((score) => {
+      const field = root.querySelector(`[data-branch-score="${score}"]`);
+      const value = field ? field.value.trim() : '';
+      if (value) {
+        result[score] = value;
+      }
+    });
+    return result;
+  }
+
+  function hasOutcomeBranchValues(branchMap) {
+    return branchMap && Object.values(branchMap).some((value) => !!value);
+  }
+
+  function pickPrimaryOutcome(branchMap, priorityScores) {
+    if (!branchMap) {
+      return '';
+    }
+    for (const score of priorityScores) {
+      const value = branchMap[score] || branchMap[String(score)];
+      if (value) {
+        return value;
+      }
+    }
+    return '';
+  }
+
+  function normalizeOutcomeBranches(raw, fallback, fallbackScore) {
+    const normalized = {};
+    SUCCESS_LEVEL_SCORES.forEach((score) => {
+      const rawValue = raw?.[score] || raw?.[String(score)];
+      normalized[score] = typeof rawValue === 'string' ? rawValue.trim() : '';
+    });
+    if (fallback && !hasOutcomeBranchValues(normalized)) {
+      const targetScore =
+        fallbackScore != null ? fallbackScore : SUCCESS_LEVEL_SCORES[0];
+      normalized[targetScore] = fallback;
+    }
+    return normalized;
+  }
+
+  function fillOutcomeBranches(block, branches, fallbackSuccess, fallbackFail) {
+    const successMap = normalizeOutcomeBranches(branches, fallbackSuccess, SUCCESS_LEVEL_SCORES[0]);
+    const failMap = normalizeOutcomeBranches(branches, fallbackFail, SUCCESS_LEVEL_SCORES.slice(-1)[0]);
+    SUCCESS_LEVEL_SCORES.forEach((score) => {
+      const field = block.querySelector(`[data-branch-score="${score}"]`);
+      if (field) {
+        const value = score >= 3 ? successMap[score] : failMap[score];
+        field.value = value || '';
+      }
+    });
+  }
   function readEventBlock(block, index) {
     const id = getFieldValue(block, 'event.id');
     const title = getFieldValue(block, 'event.title');
@@ -2007,8 +2132,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const npcAppearance = parseNpcText(npcText);
     const timeoutRaw = getFieldValue(block, 'event.timeout');
     const timeout = timeoutRaw ? Number.parseInt(timeoutRaw, 10) : null;
-    const onSuccess = getFieldValue(block, 'event.on_success');
-    const onFail = getFieldValue(block, 'event.on_fail');
+    const outcomeBranches = collectOutcomeBranches(block);
+    const primarySuccess = pickPrimaryOutcome(outcomeBranches, [5, 4, 3, 2, 1]);
+    const primaryFail = pickPrimaryOutcome(outcomeBranches, [1, 2, 3, 4, 5]);
+    const hasBranching = hasOutcomeBranchValues(outcomeBranches);
 
     const hasContent =
       id ||
@@ -2017,13 +2144,12 @@ document.addEventListener('DOMContentLoaded', () => {
       successCriteria.length ||
       npcAppearance.length ||
       timeoutRaw ||
-      onSuccess ||
-      onFail;
+      hasBranching;
     if (!hasContent) {
       return null;
     }
 
-    return {
+    const eventPayload = {
       id: id || `event_${index + 1}`,
       title,
       description,
@@ -2031,9 +2157,15 @@ document.addEventListener('DOMContentLoaded', () => {
       npc_appearance: npcAppearance,
       timeout_turn: Number.isFinite(timeout) ? timeout : null,
       preconditions: [],
-      on_success: onSuccess || null,
-      on_fail: onFail || null,
+      on_success: primarySuccess || null,
+      on_fail: primaryFail || null,
     };
+
+    if (hasBranching) {
+      eventPayload.on_score_branches = outcomeBranches;
+    }
+
+    return eventPayload;
   }
 
   function fillEventBlock(block, data = {}) {
@@ -2043,8 +2175,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setFieldValue(block, 'event.npc', formatNpcList(data.npc_appearance || data.npc));
     const timeout = data.timeout_turn ?? data.timeout;
     setFieldValue(block, 'event.timeout', timeout != null ? String(timeout) : '');
-    setFieldValue(block, 'event.on_success', data.on_success || '');
-    setFieldValue(block, 'event.on_fail', data.on_fail || '');
+    fillOutcomeBranches(block, data.on_score_branches, data.on_success || '', data.on_fail || '');
     fillSuccessCriteria(block, data.success_criteria);
   }
 
