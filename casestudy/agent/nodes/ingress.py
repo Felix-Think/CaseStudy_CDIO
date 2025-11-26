@@ -59,9 +59,6 @@ def build_ingress_node(
             state.event_summary["on_score_branches"] = score_branches
             state.event_summary["last_result"] = None
             state.event_summary["reason"] = None
-        print("ingress","="*50)
-        print(state)
-        print("="*50)
         return state
 
     return ingress

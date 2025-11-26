@@ -113,6 +113,7 @@ def build_persona_dialogue_node(
         )
 
         persona_lines = _parse_persona_dialogue(raw_output)
+        print("[DEBUG persona_dialogue] Generated persona lines:", persona_lines)
         if not persona_lines:
             state.event_summary["_last_persona_dialogue"] = []
             return state
