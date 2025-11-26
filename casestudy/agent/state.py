@@ -53,6 +53,14 @@ class RuntimeState(BaseModel):
             event_summary = {}
         event_summary.setdefault("_last_scene_event", None)
         event_summary.setdefault("_last_persona_dialogue", [])
+        event_summary.setdefault("remaining_success_criteria", [])
+        event_summary.setdefault("completed_success_criteria", [])
+        event_summary.setdefault("partial_success_criteria", [])
+        event_summary.setdefault("matched_actions", [])
+        event_summary.setdefault("scores", [])
+        event_summary.setdefault("on_score_branches", {})
+        event_summary.setdefault("last_result", None)
+        event_summary.setdefault("reason", None)
         payload["event_summary"] = event_summary
         return cls(**payload)
 
@@ -71,13 +79,14 @@ class RuntimeState(BaseModel):
             "_last_scene_event": None,
             "_last_persona_dialogue": [],
             start_event: "pending",
-            f"{start_event}_remaining_success_criteria": list(success_list),
-            f"{start_event}_completed_success_criteria": [],
-            f"{start_event}_partial": [],
-            f"{start_event}_matched": [],
-            f"{start_event}_scores": [],
-            f"{start_event}_last_result": None,
-            f"{start_event}_reason": None,
+            "remaining_success_criteria": list(success_list),
+            "completed_success_criteria": [],
+            "partial_success_criteria": [],
+            "matched_actions": [],
+            "scores": [],
+            "last_result": None,
+            "reason": None,
+            "on_score_branches": event.get("on_score_branches") or {},
         }
 
         max_turns = event.get("timeout_turn", 0) if event else 0

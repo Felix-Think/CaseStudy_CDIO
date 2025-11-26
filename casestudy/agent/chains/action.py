@@ -231,7 +231,6 @@ def create_action_evaluator_chain(
             }
 
         satisfied: List[str] = []
-        partial: List[str] = []
         remaining: List[Dict[str, Any]] = []
         scores: List[Dict[str, Any]] = []
 
@@ -252,17 +251,12 @@ def create_action_evaluator_chain(
 
             if status_value == "satisfied":
                 satisfied.append(criterion["description"])
-            elif status_value == "partial":
-                partial.append(criterion["description"])
-                score_numeric = score_value if isinstance(score_value, int) else None
-                if score_numeric is None or score_numeric < 3:
-                    remaining.append(copy.deepcopy(criterion))
             else:
                 remaining.append(copy.deepcopy(criterion))
 
         if not remaining:
             status = "pass"
-        elif satisfied or partial:
+        elif satisfied:
             status = "needs_attention"
         else:
             status = "pending"
@@ -271,7 +265,6 @@ def create_action_evaluator_chain(
             "status": status,
             "matched_actions": satisfied,
             "satisfied_success_criteria": satisfied,
-            "partial_success_criteria": partial,
             "remaining_success_criteria": remaining,
             "scores": scores,
         }

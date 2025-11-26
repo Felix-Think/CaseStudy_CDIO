@@ -25,6 +25,7 @@ def build_transition_node(logic_memory: LogicMemory) -> Any:
             state.max_turns = 0
 
         status = state.event_summary.get(event_id, "pending")
+        remaining_success = state.event_summary.get("remaining_success_criteria", [])
         timeout_reached = (
             isinstance(timeout_limit, int)
             and timeout_limit > 0
@@ -35,14 +36,14 @@ def build_transition_node(logic_memory: LogicMemory) -> Any:
         next_event_id = event_id
 
         if timeout_reached:
-            state.event_summary[f"{event_id}_last_result"] = "timeout_fail"
+            state.event_summary["last_result"] = "timeout_fail"
             state.event_summary[event_id] = "fail"
-            state.event_summary[f"{event_id}_reason"] = "timeout"
-            state.event_summary[f"{event_id}_remaining_success_criteria"] = list(
+            state.event_summary["reason"] = "timeout"
+            state.event_summary["remaining_success_criteria"] = list(
                 event.get("success_criteria", [])
             ) if event else []
-            state.event_summary[f"{event_id}_completed_success_criteria"] = []
-            state.event_summary[f"{event_id}_partial"] = []
+            state.event_summary["completed_success_criteria"] = []
+            state.event_summary["partial_success_criteria"] = []
             retry_event_id = event.get("on_fail") or logic_memory.first_event or event_id
             retry_event = logic_memory.get_event(retry_event_id)
             retry_title = retry_event.get("title", retry_event_id) if retry_event else retry_event_id
@@ -56,6 +57,9 @@ def build_transition_node(logic_memory: LogicMemory) -> Any:
         elif status == "pass" and event.get("on_success"):
             state.system_notice = None
             next_event_id = event["on_success"]
+        elif not remaining_success:
+            state.system_notice = None
+            next_event_id = event.get("on_success") or event_id
         else:
             state.system_notice = None
 
@@ -65,13 +69,17 @@ def build_transition_node(logic_memory: LogicMemory) -> Any:
             state.event_summary["_last_scene_event"] = None
             state.event_summary["_last_persona_dialogue"] = []
             state.event_summary[next_event_id] = "pending"
+            state.event_summary["last_result"] = None
+            state.event_summary["reason"] = None
             next_event = logic_memory.get_event(next_event_id)
             next_timeout = next_event.get("timeout_turn") if next_event else None
             state.max_turns = next_timeout if next_timeout else 0
             success_list = list(next_event.get("success_criteria", [])) if next_event else []
-            state.event_summary[f"{next_event_id}_remaining_success_criteria"] = success_list
-            state.event_summary[f"{next_event_id}_completed_success_criteria"] = []
-            state.event_summary[f"{next_event_id}_partial"] = []
+            state.event_summary["remaining_success_criteria"] = success_list
+            state.event_summary["completed_success_criteria"] = []
+            state.event_summary["partial_success_criteria"] = []
+            state.event_summary["matched_actions"] = []
+            state.event_summary["scores"] = []
 
         return state
 

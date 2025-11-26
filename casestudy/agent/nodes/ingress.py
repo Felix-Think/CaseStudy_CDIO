@@ -47,16 +47,21 @@ def build_ingress_node(
 
         current_event = logic_memory.get_event(state.current_event)
         if current_event:
-            remaining_key = f"{state.current_event}_remaining_success_criteria"
-            completed_key = f"{state.current_event}_completed_success_criteria"
-            partial_key = f"{state.current_event}_partial"
+            success_list = list(current_event.get("success_criteria", []))
+            score_branches = current_event.get("on_score_branches") or {}
 
-            state.event_summary.setdefault(
-                remaining_key, list(current_event.get("success_criteria", []))
-            )
-            state.event_summary.setdefault(completed_key, [])
-            state.event_summary.setdefault(partial_key, [])
-
+            state.event_summary[state.current_event] = state.event_summary.get(state.current_event, "pending")
+            state.event_summary["remaining_success_criteria"] = success_list
+            state.event_summary["completed_success_criteria"] = []
+            state.event_summary["partial_success_criteria"] = []
+            state.event_summary["matched_actions"] = []
+            state.event_summary["scores"] = []
+            state.event_summary["on_score_branches"] = score_branches
+            state.event_summary["last_result"] = None
+            state.event_summary["reason"] = None
+        print("ingress","="*50)
+        print(state)
+        print("="*50)
         return state
 
     return ingress

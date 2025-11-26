@@ -53,7 +53,6 @@ def create_responder_chain(
                     "Tóm tắt bối cảnh: {scene_summary}\n"
                     "Tiêu chí còn lại: {success_criteria}\n"
                     "Tiêu chí đã đạt: {completed_success_criteria}\n"
-                    "Tiêu chí cần chú ý: {partial_success_criteria}\n"
                     "Nhân vật đang hiện diện: {persona_overview}\n"
                     "Lịch sử hội thoại: {dialogue_history}\n"
                     "Vi phạm hoặc lưu ý policy: {policy_flags}\n"
@@ -92,12 +91,6 @@ def create_responder_chain(
         else:
             completed_text = completed_success or "Chưa đạt."
 
-        partial_success = payload.get("partial_success_criteria", [])
-        if isinstance(partial_success, list):
-            partial_text = "; ".join(partial_success) or "Không có."
-        else:
-            partial_text = partial_success or "Không có."
-
         policy_flags = payload.get("policy_flags")
         if isinstance(policy_flags, list) and policy_flags:
             policy_text = "; ".join(flag.get("policy_text", "") for flag in policy_flags)
@@ -122,7 +115,6 @@ def create_responder_chain(
                 "scene_summary": payload.get("scene_summary", "Chưa có dữ liệu."),
                 "success_criteria": success_criteria_text,
                 "completed_success_criteria": completed_text,
-                "partial_success_criteria": partial_text,
                 "persona_overview": payload.get("persona_overview", "Không có."),
                 "dialogue_history": history_text,
                 "policy_flags": policy_text,

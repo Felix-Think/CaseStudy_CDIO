@@ -19,8 +19,8 @@ def build_action_node(
         event = logic_memory.get_event(event_id)
 
         success_criteria_source = normalize_success_criteria(event.get("success_criteria", [])) if event else []
-        remaining_key = f"{event_id}_remaining_success_criteria"
-        completed_key = f"{event_id}_completed_success_criteria"
+        remaining_key = "remaining_success_criteria"
+        completed_key = "completed_success_criteria"
 
         remaining_success_criteria = state.event_summary.get(remaining_key)
         if remaining_success_criteria is None:
@@ -39,7 +39,6 @@ def build_action_node(
 
         updated_remaining = result.get("remaining_success_criteria", remaining_success_criteria)
         satisfied_now = result.get("satisfied_success_criteria", [])
-        partial_matches = result.get("partial_success_criteria", [])
 
         updated_completed = [
             *existing_completed,
@@ -47,11 +46,10 @@ def build_action_node(
         ]
 
         state.event_summary[event_id] = result.get("status", "pending")
-        state.event_summary[f"{event_id}_matched"] = result.get("matched_actions", [])
-        state.event_summary[f"{event_id}_scores"] = result.get("scores", [])
+        state.event_summary["matched_actions"] = result.get("matched_actions", [])
+        state.event_summary["scores"] = result.get("scores", [])
         state.event_summary[remaining_key] = updated_remaining
         state.event_summary[completed_key] = updated_completed
-        state.event_summary[f"{event_id}_partial"] = partial_matches
 
         return state
 
