@@ -14,7 +14,7 @@ def create_persona_digest_chain(
     llm,
     *,
     case_id: str = DEFAULT_CASE_ID,
-    top_k: int = 2,
+    top_k: int = 1,
 ) -> Runnable:
     """
     Build a chain that consolidates persona details into short operational digests.
@@ -85,7 +85,7 @@ def create_persona_dialogue_chain(
             (
                 "system",
                 (
-                    "Bạn điều phối lời thoại cho các nhân vật (NPC) trong mô phỏng y khoa. "
+                    "Bạn điều phối lời thoại cho các nhân vật (NPC) trong mô phỏng, ngữ cảnh mô phòng phải phải đúng với sự kiện hiện tại. "
                     "Hãy giữ giọng điệu và hành động phù hợp hồ sơ từng nhân vật, ngắn gọn "
                     "và tập trung vào tình huống hiện tại. Trả về JSON."
                 ),
@@ -98,14 +98,18 @@ def create_persona_dialogue_chain(
                     "Tóm tắt bối cảnh hiện tại: {scene_summary}\n"
                     "Hành động mới nhất của học viên: {user_action}\n"
                     "Danh sách nhân vật được phép phản hồi:\n{allowed_personas}\n"
-                    "Trạng thái nhân vật:\n{persona_slate}\n"
+                    "Trạng thái nhân vật: {persona_slate}\n"
                     "Đoạn hội thoại gần nhất:\n{recent_history}\n\n"
+                    "Sau khi đã có trạng thái nhân vật khởi tạo thì phải dựa trên mức độ điểm hoàn thành mà thay đổi cảm xúc nhân vật cho phù hợp.\n"
                     "Yêu cầu:\n"
                     "- Chỉ tạo lời thoại cho các nhân vật có trong danh sách được phép.\n"
+                    "- Lời thoại tạo ra phải phù hợp với bối cảnh, sự kiện, mức độ điểm hoàn thành và hành động của học viên.\n" 
                     "- Mỗi nhân vật tối đa 1-2 câu, ưu tiên hành vi hợp lý.\n"
+                    "- Trả về emotion mới của nhân vật (nếu có thay đổi) để cập nhật trạng thái.\n"
                     "- Nếu không cần phản hồi, trả về mảng rỗng.\n"
+                    
                     "- Phản hồi cuối cùng ở dạng JSON array: "
-                    "[{{\"persona_id\": \"P1\", \"persona_name\": \"Tên\", \"utterance\": \"...\"}}]."
+                    "[{{\"persona_id\": \"P1\", \"persona_name\": \"Tên\", \"utterance\": \"...\", \"emotion\": \"...\"}}]."
                 ),
             ),
         ]

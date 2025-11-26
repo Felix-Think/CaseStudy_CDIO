@@ -54,12 +54,14 @@ def _parse_persona_dialogue(raw_output: str) -> List[Dict[str, str]]:
                 persona_id = item.get("persona_id") or ""
                 persona_name = item.get("persona_name") or persona_id or "NPC"
                 utterance = item.get("utterance") or item.get("text") or ""
+                emotion = item.get("emotion") or item.get("mood") or ""
                 if utterance:
                     parsed.append(
                         {
                             "persona_id": persona_id,
                             "speaker": persona_name,
                             "content": utterance.strip(),
+                            "emotion": emotion.strip() or None,
                         }
                     )
     except json.JSONDecodeError:
@@ -74,6 +76,7 @@ def _parse_persona_dialogue(raw_output: str) -> List[Dict[str, str]]:
                         "persona_id": "",
                         "speaker": speaker.strip(),
                         "content": content.strip(),
+                        "emotion": "",
                     }
                 )
 
@@ -131,6 +134,25 @@ def build_persona_dialogue_node(
         if not persona_lines:
             state.event_summary["_last_persona_dialogue"] = []
             return state
+
+        for line in persona_lines:
+            emotion = line.get("emotion")
+            if not emotion:
+                continue
+            target = None
+            persona_id = line.get("persona_id")
+            if persona_id and persona_id in state.active_personas:
+                target = state.active_personas.get(persona_id)
+            elif line.get("speaker"):
+                matches = [
+                    persona
+                    for persona in state.active_personas.values()
+                    if persona.name == line.get("speaker")
+                ]
+                if len(matches) == 1:
+                    target = matches[0]
+            if target:
+                target.emotion = emotion
 
         state.event_summary["_last_persona_dialogue"] = persona_lines
         return state
