@@ -100,6 +100,7 @@ def build_persona_dialogue_node(
         event_title = event.get("title", state.current_event) if event else state.current_event
 
         persona_slate = _format_persona_slate(state.active_personas)
+        print(persona_slate)
         recent_history = _format_recent_history(state.dialogue_history)
         allowed_personas = "\n".join(
             f"{persona.id} - {persona.name} ({persona.role})" for persona in state.active_personas.values()
@@ -127,7 +128,6 @@ def build_persona_dialogue_node(
                 or (line.get("speaker") in allowed_names and allowed_ids)
             )
         ]
-        print("[DEBUG persona_dialogue] Generated persona lines:", persona_lines)
         if not persona_lines:
             state.event_summary["_last_persona_dialogue"] = []
             return state
