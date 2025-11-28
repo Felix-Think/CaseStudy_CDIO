@@ -5,6 +5,7 @@ from typing import Any, Dict, Iterable, List
 
 from langchain_core.runnables import RunnableConfig
 
+from ..chains.action import format_rubric_for_prompt, normalize_success_criteria
 from ..memory import LogicMemory
 from ..state import PersonaState, RuntimeState
 
@@ -26,6 +27,39 @@ def _format_persona_slate(personas: Dict[str, PersonaState]) -> str:
             f"- {persona.name} ({persona.role}) | cảm xúc: {persona.emotion} | trust: {persona.trust:.2f} | ghi chú: {profile}"
         )
     return "\n".join(lines)
+
+
+def _format_rubric_context(event_summary: Dict[str, Any]) -> str:
+    remaining = normalize_success_criteria(event_summary.get("remaining_success_criteria") or [])
+    completed = event_summary.get("completed_success_criteria") or []
+    scores = event_summary.get("scores") or []
+
+    parts: List[str] = []
+
+    if remaining:
+        parts.append("Tiêu chí còn lại:\n" + format_rubric_for_prompt(remaining))
+    else:
+        parts.append("Tất cả tiêu chí đã đạt.")
+
+    if completed:
+        completed_lines = "\n".join(f"- {item}" for item in completed)
+        parts.append("Đã hoàn thành:\n" + completed_lines)
+
+    score_lines: List[str] = []
+    for score_entry in scores:
+        if not isinstance(score_entry, dict):
+            continue
+        criterion = score_entry.get("criterion") or score_entry.get("description") or "Tiêu chí"
+        score_value = score_entry.get("score")
+        if score_value is None:
+            continue
+        analysis = score_entry.get("analysis")
+        analysis_part = f" ({analysis})" if analysis else ""
+        score_lines.append(f"- {criterion}: {score_value}/5{analysis_part}")
+    if score_lines:
+        parts.append("Điểm & nhận xét gần nhất:\n" + "\n".join(score_lines))
+
+    return "\n".join(parts).strip() or "Chưa có rubric."
 
 
 def _parse_persona_dialogue(raw_output: str) -> List[Dict[str, str]]:
@@ -54,14 +88,14 @@ def _parse_persona_dialogue(raw_output: str) -> List[Dict[str, str]]:
                 persona_id = item.get("persona_id") or ""
                 persona_name = item.get("persona_name") or persona_id or "NPC"
                 utterance = item.get("utterance") or item.get("text") or ""
-                emotion = item.get("emotion") or item.get("mood") or ""
+                emotion = item.get("emotion") or item.get("emotion_update") or ""
                 if utterance:
                     parsed.append(
                         {
                             "persona_id": persona_id,
                             "speaker": persona_name,
                             "content": utterance.strip(),
-                            "emotion": emotion.strip() or None,
+                            "emotion": emotion.strip(),
                         }
                     )
     except json.JSONDecodeError:
@@ -76,7 +110,6 @@ def _parse_persona_dialogue(raw_output: str) -> List[Dict[str, str]]:
                         "persona_id": "",
                         "speaker": speaker.strip(),
                         "content": content.strip(),
-                        "emotion": "",
                     }
                 )
 
@@ -102,8 +135,9 @@ def build_persona_dialogue_node(
         event = logic_memory.get_event(state.current_event)
         event_title = event.get("title", state.current_event) if event else state.current_event
 
+        event_status = state.event_summary.get(state.current_event, "pending")
+        rubric_context = _format_rubric_context(state.event_summary)
         persona_slate = _format_persona_slate(state.active_personas)
-        print(persona_slate)
         recent_history = _format_recent_history(state.dialogue_history)
         allowed_personas = "\n".join(
             f"{persona.id} - {persona.name} ({persona.role})" for persona in state.active_personas.values()
@@ -113,6 +147,8 @@ def build_persona_dialogue_node(
             {
                 "event_title": event_title,
                 "scene_summary": state.scene_summary or "Chưa có dữ liệu.",
+                "event_status": event_status,
+                "rubric_context": rubric_context,
                 "user_action": user_action,
                 "persona_slate": persona_slate,
                 "allowed_personas": allowed_personas,
@@ -131,28 +167,25 @@ def build_persona_dialogue_node(
                 or (line.get("speaker") in allowed_names and allowed_ids)
             )
         ]
+        for line in persona_lines:
+            target = None
+            persona_id = line.get("persona_id") or ""
+            speaker = line.get("speaker") or ""
+            if persona_id and persona_id in state.active_personas:
+                target = state.active_personas[persona_id]
+            elif speaker:
+                target = next(
+                    (persona for persona in state.active_personas.values() if persona.name == speaker),
+                    None,
+                )
+            if target:
+                new_emotion = (line.get("emotion") or "").strip()
+                if new_emotion:
+                    target.emotion = new_emotion
+
         if not persona_lines:
             state.event_summary["_last_persona_dialogue"] = []
             return state
-
-        for line in persona_lines:
-            emotion = line.get("emotion")
-            if not emotion:
-                continue
-            target = None
-            persona_id = line.get("persona_id")
-            if persona_id and persona_id in state.active_personas:
-                target = state.active_personas.get(persona_id)
-            elif line.get("speaker"):
-                matches = [
-                    persona
-                    for persona in state.active_personas.values()
-                    if persona.name == line.get("speaker")
-                ]
-                if len(matches) == 1:
-                    target = matches[0]
-            if target:
-                target.emotion = emotion
 
         state.event_summary["_last_persona_dialogue"] = persona_lines
         return state

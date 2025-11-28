@@ -95,15 +95,17 @@ def create_persona_dialogue_chain(
                 (
                     "Case ID: {case_id}\n"
                     "Canon Event: {event_title}\n"
+                    "Trạng thái CE (pass/pending/needs_attention...): {event_status}\n"
                     "Tóm tắt bối cảnh hiện tại: {scene_summary}\n"
+                    "Tiến độ theo rubric & điểm số gần nhất:\n{rubric_context}\n"
                     "Hành động mới nhất của học viên: {user_action}\n"
                     "Danh sách nhân vật được phép phản hồi:\n{allowed_personas}\n"
-                    "Trạng thái nhân vật: {persona_slate}\n"
+                    "Trạng thái nhân vật hiện tại: {persona_slate}\n"
                     "Đoạn hội thoại gần nhất:\n{recent_history}\n\n"
-                    "Sau khi đã có trạng thái nhân vật khởi tạo thì phải dựa trên mức độ điểm hoàn thành mà thay đổi cảm xúc nhân vật cho phù hợp.\n"
+                    "Sau khi đã có trạng thái nhân vật khởi tạo thì phải dựa trên mức độ điểm hoàn thành/rubric mà thay đổi cảm xúc nhân vật cho phù hợp.\n"
                     "Yêu cầu:\n"
                     "- Chỉ tạo lời thoại cho các nhân vật có trong danh sách được phép.\n"
-                    "- Lời thoại tạo ra phải phù hợp với bối cảnh, sự kiện, mức độ điểm hoàn thành và hành động của học viên.\n" 
+                    "- Lời thoại tạo ra phải phù hợp với bối cảnh, sự kiện, tiến độ CE đã giải quyết, mức độ điểm hoàn thành và hành động của học viên.\n"
                     "- Mỗi nhân vật tối đa 1-2 câu, ưu tiên hành vi hợp lý.\n"
                     "- Trả về emotion mới của nhân vật (nếu có thay đổi) để cập nhật trạng thái.\n"
                     "- Nếu không cần phản hồi, trả về mảng rỗng.\n"
@@ -121,7 +123,9 @@ def create_persona_dialogue_chain(
             {
                 "case_id": case_id,
                 "event_title": payload.get("event_title", "Sự kiện"),
+                "event_status": payload.get("event_status", "pending"),
                 "scene_summary": payload.get("scene_summary", "Chưa có dữ liệu."),
+                "rubric_context": payload.get("rubric_context", "Chưa có rubric."),
                 "user_action": payload.get("user_action", "Chưa ghi nhận."),
                 "allowed_personas": payload.get("allowed_personas", "Không có nhân vật."),
                 "persona_slate": payload.get("persona_slate", "Không có nhân vật."),
