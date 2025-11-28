@@ -3,9 +3,23 @@ from __future__ import annotations
 from langchain_core.runnables import RunnableConfig
 from ..memory import LogicMemory
 from ..state import RuntimeState
-from typing import Any
+from typing import Any, Callable, Optional
 
-def build_transition_node(logic_memory: LogicMemory) -> Any:
+
+def _append(history, speaker, content):
+    if not content:
+        return
+    if history and history[-1] == {"speaker": speaker, "content": content}:
+        return
+    history.append({"speaker": speaker, "content": content})
+
+
+def build_transition_node(
+    logic_memory: LogicMemory,
+    *,
+    semantic_refresher: Optional[Callable[[RuntimeState, Optional[RunnableConfig]], RuntimeState]] = None,
+    persona_refresher: Optional[Callable[[RuntimeState, Optional[RunnableConfig]], RuntimeState]] = None,
+) -> Any:
     """
     Decide the next canon event based on evaluation status.
     """
@@ -101,10 +115,22 @@ def build_transition_node(logic_memory: LogicMemory) -> Any:
         else:
             state.system_notice = None
         if next_event_id != event_id:
+            previous_persona_lines = (
+                state.event_summary.get("_last_persona_dialogue") if isinstance(state.event_summary, dict) else []
+            )
+            if not isinstance(previous_persona_lines, list):
+                previous_persona_lines = []
+            # Đưa lời thoại cũ vào history để persona mới vẫn biết ngữ cảnh
+            for line in previous_persona_lines:
+                if not isinstance(line, dict):
+                    continue
+                speaker = line.get("speaker") or "NPC"
+                content = line.get("content")
+                _append(state.dialogue_history, speaker, content)
+
             state.current_event = next_event_id
             state.turn_count = 0
             state.event_summary["_last_scene_event"] = None
-            state.event_summary["_last_persona_dialogue"] = []
             state.event_summary[next_event_id] = "pending"
             state.event_summary["last_result"] = None
             state.event_summary["reason"] = None
@@ -117,6 +143,20 @@ def build_transition_node(logic_memory: LogicMemory) -> Any:
             state.event_summary["partial_success_criteria"] = []
             state.event_summary["matched_actions"] = []
             state.event_summary["scores"] = []
+            # Xóa cache lời thoại để tránh ghép 2 lần khi làm mới
+            state.event_summary["_last_persona_dialogue"] = []
+
+            # Làm mới scene/persona ngay trong lượt chuyển CE để có thoại tức thì
+            if semantic_refresher:
+                state = semantic_refresher(state, None)
+            if persona_refresher:
+                state = persona_refresher(state, None)
+
+            # Chỉ giữ lời thoại mới của CE mới để trả về/append
+            refreshed_lines = state.event_summary.get("_last_persona_dialogue")
+            if not isinstance(refreshed_lines, list):
+                refreshed_lines = []
+            state.event_summary["_last_persona_dialogue"] = refreshed_lines
         return state
 
     return transition

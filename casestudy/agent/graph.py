@@ -65,10 +65,7 @@ class CaseStudyGraphBuilder:
             self.llm,
             case_id=case_id,
         )
-        self.persona_dialogue_chain = create_persona_dialogue_chain(
-            self.llm,
-            case_id=case_id,
-        )
+        self.persona_dialogue_chain = create_persona_dialogue_chain(self.llm, case_id=case_id)
         self.policy_chain = create_policy_lookup_chain(policy_index)
         self.action_chain = create_action_evaluator_chain(llm=self.llm)
         self.responder_chain = create_responder_chain(self.llm, case_id=case_id)
@@ -78,6 +75,13 @@ class CaseStudyGraphBuilder:
 
         default_event = self.logic_memory.first_event or "CE1"
 
+        semantic_node = build_semantic_node(
+            self.logic_memory, self.scene_chain, self.persona_chain
+        )
+        persona_node = build_persona_dialogue_node(
+            self.logic_memory, self.persona_dialogue_chain
+        )
+
         graph.add_node(
             "ingress",
             build_ingress_node(
@@ -86,16 +90,8 @@ class CaseStudyGraphBuilder:
                 default_event=default_event,
             ),
         )
-        graph.add_node(
-            "semantic",
-            build_semantic_node(
-                self.logic_memory, self.scene_chain, self.persona_chain
-            ),
-        )
-        graph.add_node(
-            "persona",
-            build_persona_dialogue_node(self.logic_memory, self.persona_dialogue_chain),
-        )
+        graph.add_node("semantic", semantic_node)
+        graph.add_node("persona", persona_node)
         graph.add_node("policy", build_policy_node(self.policy_chain))
         graph.add_node(
             "action",
@@ -103,7 +99,11 @@ class CaseStudyGraphBuilder:
         )
         graph.add_node(
             "transition",
-            build_transition_node(self.logic_memory),
+            build_transition_node(
+                self.logic_memory,
+                semantic_refresher=semantic_node,
+                persona_refresher=persona_node,
+            ),
         )
         graph.add_node(
             "responder",
