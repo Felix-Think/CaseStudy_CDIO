@@ -10,7 +10,18 @@ def build_policy_node(policy_chain) -> Any:
     """
 
     def policy(state: RuntimeState, _: RunnableConfig = None) -> RuntimeState:
-        state.policy_flags = policy_chain({"user_action": state.user_action})
+        raw_flags = policy_chain({"user_action": state.user_action}) or []
+        seen = set()
+        deduped = []
+        for flag in raw_flags:
+            if not isinstance(flag, dict):
+                continue
+            key = (flag.get("policy_id"), flag.get("policy_text"))
+            if key in seen:
+                continue
+            seen.add(key)
+            deduped.append(flag)
+        state.policy_flags = deduped
         return state
 
     return policy

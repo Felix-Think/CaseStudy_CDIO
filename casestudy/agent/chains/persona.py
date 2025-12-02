@@ -87,7 +87,12 @@ def create_persona_dialogue_chain(
                 (
                     "Bạn điều phối lời thoại cho các nhân vật (NPC) trong mô phỏng, ngữ cảnh mô phòng phải phải đúng với sự kiện hiện tại. "
                     "Hãy giữ giọng điệu và hành động phù hợp hồ sơ từng nhân vật, ngắn gọn "
-                    "và tập trung vào tình huống hiện tại. Trả về JSON."
+                    "và tập trung vào tình huống hiện tại. Tránh lặp lại nguyên văn các câu trong lịch sử. "
+                    "Dựa trên turn_count để thay đổi cảm xúc/giọng điệu theo tiến trình (đầu còn mềm, về sau có thể căng hoặc dịu đi nếu được trấn an). "
+                    "Dựa trên rubric score/summary mới nhất để điều chỉnh cảm xúc và độ quyết liệt: "
+                    "score >=4 thì cảm xúc dịu/hài lòng hơn một tí, lời thoại mang tính hợp tác, tránh đe doạ/giận dữ; "
+                    "score =3 giữ trung tính; score <=2 tăng bức xúc/đe doạ và hành động quyết liệt. "
+                    "Thể hiện qua hành động/lời nói cụ thể thay vì chỉ nói 'tôi cảm thấy...', có thể dùng tiếng địa phương hoặc từ ngữ mạnh khi phù hợp. Trả về JSON."
                 ),
             ),
             (
@@ -102,10 +107,16 @@ def create_persona_dialogue_chain(
                     "Danh sách nhân vật được phép phản hồi:\n{allowed_personas}\n"
                     "Trạng thái nhân vật hiện tại: {persona_slate}\n"
                     "Đoạn hội thoại gần nhất:\n{recent_history}\n\n"
+                    "Lượt hiện tại: {turn_count}\n"
+                    "Tóm tắt điểm số & nhận xét rubric (nếu có):\n{score_summary}\n\n"
+                    "Điểm gần nhất: {latest_score}\n"
                     "Sau khi đã có trạng thái nhân vật khởi tạo thì phải dựa trên mức độ điểm hoàn thành/rubric mà thay đổi cảm xúc nhân vật cho phù hợp.\n"
                     "Yêu cầu:\n"
                     "- Chỉ tạo lời thoại cho các nhân vật có trong danh sách được phép.\n"
                     "- Lời thoại tạo ra phải phù hợp với bối cảnh, sự kiện, tiến độ CE đã giải quyết, mức độ điểm hoàn thành và hành động của học viên.\n"
+                    "- Không được trùng nguyên văn với các câu đã có trong lịch sử.\n"
+                    "- Cảm xúc và cách nói phải thay đổi theo turn_count và theo rubric score/summary mới nhất.\n"
+                    "- Ưu tiên lời thoại/hành động thực tế (yêu cầu, đề nghị, hành động cụ thể) thay vì mô tả cảm xúc trống rỗng.\n"
                     "- Mỗi nhân vật tối đa 1-2 câu, ưu tiên hành vi hợp lý.\n"
                     "- Trả về emotion mới của nhân vật (nếu có thay đổi) để cập nhật trạng thái.\n"
                     "- Nếu không cần phản hồi, trả về mảng rỗng.\n"
@@ -130,6 +141,9 @@ def create_persona_dialogue_chain(
                 "allowed_personas": payload.get("allowed_personas", "Không có nhân vật."),
                 "persona_slate": payload.get("persona_slate", "Không có nhân vật."),
                 "recent_history": payload.get("recent_history", "Chưa có hội thoại."),
+                "turn_count": payload.get("turn_count", 0),
+                "score_summary": payload.get("score_summary", "Chưa có điểm."),
+                "latest_score": payload.get("latest_score", "Chưa có điểm."),
             }
         )
 

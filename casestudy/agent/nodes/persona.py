@@ -61,6 +61,70 @@ def _format_rubric_context(event_summary: Dict[str, Any]) -> str:
 
     return "\n".join(parts).strip() or "Chưa có rubric."
 
+def _format_score_summary(event_summary: Dict[str, Any]) -> str:
+    """
+    Tóm tắt điểm số/nhận xét ngắn gọn để persona điều chỉnh cảm xúc theo lượt.
+    """
+    scores = event_summary.get("scores") or []
+    if not scores:
+        return "Chưa có điểm."
+    lines: List[str] = []
+    for entry in scores:
+        if not isinstance(entry, dict):
+            continue
+        criterion = entry.get("criterion") or entry.get("description") or "Tiêu chí"
+        score_val = entry.get("score")
+        analysis = entry.get("analysis") or ""
+        if score_val is None:
+            continue
+        lines.append(f"{criterion}: {score_val}/5{' - ' + analysis if analysis else ''}")
+    return "\n".join(lines) or "Chưa có điểm."
+
+def _latest_score_value(event_summary: Dict[str, Any]) -> str:
+    scores = event_summary.get("scores") or []
+    numeric = None
+    for entry in scores:
+        if isinstance(entry, dict) and isinstance(entry.get("score"), (int, float)):
+            numeric = entry.get("score")
+    return str(numeric) if numeric is not None else "Chưa có điểm."
+
+def _latest_score_number(event_summary: Dict[str, Any]) -> float | None:
+    scores = event_summary.get("scores") or []
+    numeric = None
+    for entry in scores:
+        if isinstance(entry, dict) and isinstance(entry.get("score"), (int, float)):
+            numeric = float(entry.get("score"))
+    return numeric
+
+def _preadjust_emotion_by_score(active_personas: Dict[str, PersonaState], latest_score: float | None) -> None:
+    """
+    Cập nhật emotion trước khi gọi LLM để prompt sử dụng trạng thái mới.
+    score >=4: dịu/hài lòng; score=3: trung tính; score<=2: bức xúc.
+    """
+    if latest_score is None:
+        return
+    for persona in active_personas.values():
+        if latest_score >= 4:
+            persona.emotion = "hài lòng"
+        elif latest_score == 3:
+            persona.emotion = "trung tính"
+        else:
+            persona.emotion = "tức giận"
+
+def _is_harsh_text(text: str) -> bool:
+    lowered = text.lower()
+    harsh_keywords = [
+        "không thể chờ",
+        "phải hoàn tiền",
+        "không chấp nhận",
+        "tức giận",
+        "bức xúc",
+        "khiếu nại",
+        "đòi bồi thường",
+        "bất tiện",
+    ]
+    return any(keyword in lowered for keyword in harsh_keywords)
+
 
 def _parse_persona_dialogue(raw_output: str) -> List[Dict[str, str]]:
     raw_output = raw_output.strip()
@@ -137,6 +201,10 @@ def build_persona_dialogue_node(
 
         event_status = state.event_summary.get(state.current_event, "pending")
         rubric_context = _format_rubric_context(state.event_summary)
+        score_summary = _format_score_summary(state.event_summary)
+        latest_score = _latest_score_value(state.event_summary)
+        latest_score_num = _latest_score_number(state.event_summary)
+        _preadjust_emotion_by_score(state.active_personas, latest_score_num)
         persona_slate = _format_persona_slate(state.active_personas)
         recent_history = _format_recent_history(state.dialogue_history)
         allowed_personas = "\n".join(
@@ -153,10 +221,36 @@ def build_persona_dialogue_node(
                 "persona_slate": persona_slate,
                 "allowed_personas": allowed_personas,
                 "recent_history": recent_history,
+                "turn_count": state.turn_count,
+                "score_summary": score_summary,
+                "latest_score": latest_score,
             }
         )
 
         persona_lines = _parse_persona_dialogue(raw_output)
+        existing_contents = {
+            (turn.get("content") or "").strip().lower()
+            for turn in state.dialogue_history
+            if isinstance(turn, dict)
+        }
+        persona_lines = [
+            line for line in persona_lines
+            if (line.get("content") or "").strip().lower() not in existing_contents
+        ]
+        if latest_score_num is not None and latest_score_num >= 4:
+            adjusted_lines = []
+            for line in persona_lines:
+                content = (line.get("content") or "").strip()
+                emotion = (line.get("emotion") or "").strip().lower()
+                if emotion in {"tức giận", "angry"} or _is_harsh_text(content):
+                    # Cưỡng ép trạng thái hợp tác khi điểm cao.
+                    line["emotion"] = "hài lòng"
+                    line["content"] = (
+                        "Cảm ơn đã xử lý, tôi sẽ chờ thêm vài phút để phòng được dọn sạch. "
+                        "Nếu có gì cần thêm tôi sẽ báo."
+                    )
+                adjusted_lines.append(line)
+            persona_lines = adjusted_lines
         allowed_ids = set(state.active_personas.keys())
         allowed_names = {persona.name for persona in state.active_personas.values()}
         persona_lines = [
@@ -179,6 +273,9 @@ def build_persona_dialogue_node(
                     None,
                 )
             if target:
+                # Chuẩn hoá persona_id/speaker để khớp với active_personas, tránh mismatch (P1 vs lan_1).
+                line["persona_id"] = target.id
+                line["speaker"] = target.name
                 new_emotion = (line.get("emotion") or "").strip()
                 if new_emotion:
                     target.emotion = new_emotion

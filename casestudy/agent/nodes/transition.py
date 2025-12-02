@@ -50,8 +50,10 @@ def build_transition_node(
                     score_key = int(key)
                 except (TypeError, ValueError):
                     continue
-                if isinstance(value, str) and value.strip():
-                    branch_map[score_key] = value.strip()
+                if isinstance(value, str):
+                    stripped = value.strip()
+                    if stripped:
+                        branch_map[score_key] = stripped
         rating = _compute_score_rating(event_summary.get("scores") or [], total_criteria)
         if rating is None:
             return None, None
@@ -112,22 +114,13 @@ def build_transition_node(
                 next_event_id = score_branch_target
             else:
                 state.system_notice = "Không tìm thấy nhánh on_score_branches phù hợp."
+            # Khi đã pass/fail CE hiện tại, reset turn_count để lần lặp sau không tính dồn.
+            state.turn_count = 0
         else:
             state.system_notice = None
         if next_event_id != event_id:
-            previous_persona_lines = (
-                state.event_summary.get("_last_persona_dialogue") if isinstance(state.event_summary, dict) else []
-            )
-            if not isinstance(previous_persona_lines, list):
-                previous_persona_lines = []
-            # Đưa lời thoại cũ vào history để persona mới vẫn biết ngữ cảnh
-            for line in previous_persona_lines:
-                if not isinstance(line, dict):
-                    continue
-                speaker = line.get("speaker") or "NPC"
-                content = line.get("content")
-                _append(state.dialogue_history, speaker, content)
-
+            # Giữ nguyên _last_persona_dialogue để state_update append sau user_action,
+            # tránh việc NPC nói trước hành động của học viên khi chuyển CE.
             state.current_event = next_event_id
             state.turn_count = 0
             state.event_summary["_last_scene_event"] = None
@@ -143,20 +136,10 @@ def build_transition_node(
             state.event_summary["partial_success_criteria"] = []
             state.event_summary["matched_actions"] = []
             state.event_summary["scores"] = []
-            # Xóa cache lời thoại để tránh ghép 2 lần khi làm mới
-            state.event_summary["_last_persona_dialogue"] = []
-
-            # Làm mới scene/persona ngay trong lượt chuyển CE để có thoại tức thì
+            # Làm mới scene ngay trong lượt chuyển CE; để tránh NPC thoại lần 2
+            # trong cùng lượt, không gọi persona_refresher ở đây.
             if semantic_refresher:
                 state = semantic_refresher(state, None)
-            if persona_refresher:
-                state = persona_refresher(state, None)
-
-            # Chỉ giữ lời thoại mới của CE mới để trả về/append
-            refreshed_lines = state.event_summary.get("_last_persona_dialogue")
-            if not isinstance(refreshed_lines, list):
-                refreshed_lines = []
-            state.event_summary["_last_persona_dialogue"] = refreshed_lines
         return state
 
     return transition

@@ -26,6 +26,12 @@ def build_ingress_node(
 
         explicit_start = cfg.get("start_event")
         should_reset = cfg.get("reset_state", False)
+        should_load = cfg.get("load_state", True)
+
+        if should_load and not should_reset and not explicit_start:
+            stored = _state_store.load()
+            if stored:
+                state = stored
 
         if should_reset:
             target_event = explicit_start or default_event
