@@ -58,6 +58,8 @@ class RuntimeState(BaseModel):
         event_summary.setdefault("partial_success_criteria", [])
         event_summary.setdefault("matched_actions", [])
         event_summary.setdefault("scores", [])
+        event_summary.setdefault("score_history", [])
+        event_summary.setdefault("last_score", None)
         event_summary.setdefault("on_score_branches", {})
         event_summary.setdefault("last_result", None)
         event_summary.setdefault("reason", None)
@@ -84,6 +86,8 @@ class RuntimeState(BaseModel):
             "partial_success_criteria": [],
             "matched_actions": [],
             "scores": [],
+            "score_history": [],
+            "last_score": None,
             "last_result": None,
             "reason": None,
             "on_score_branches": event.get("on_score_branches") or {},
